@@ -21,43 +21,29 @@
     camCanvas.height = C;
     const cCtx = camCanvas.getContext('2d');
 
-    function makeTex(w, h, filter) {
-      const tex = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.bindTexture(gl.TEXTURE_2D, null);
-      return tex;
-    }
+    const targetTex = V.gl.makeTex(gl, T, T, gl.NEAREST);
+    const photoTex = V.gl.makeTex(gl, T, T, gl.NEAREST);
+    const brushTex = V.gl.makeTex(gl, B, B, gl.LINEAR);
+    const camTex = V.gl.makeTex(gl, C, C, gl.LINEAR);
 
-    const targetTex = makeTex(T, T, gl.NEAREST);
-    const photoTex = makeTex(T, T, gl.NEAREST);
-    const brushTex = makeTex(B, B, gl.LINEAR);
-    const camTex = makeTex(C, C, gl.LINEAR);
-
-    const targetBuf = new Uint8Array(T * T * 4);
-    const photoBuf = new Uint8Array(T * T * 4);
+    const totalPixels = T * T;
+    const targetBuf = new Uint8Array(totalPixels * 4);
+    const photoBuf = new Uint8Array(totalPixels * 4);
+    const hitOffset = new Int32Array(totalPixels);
     let hasPhoto = 0;
 
     function packFromCanvas() {
       const pixels = tCtx.getImageData(0, 0, T, T).data;
-      const pts = [];
-      for (let y = 0; y < T; y++) {
-        for (let x = 0; x < T; x++) {
-          const idx = (y * T + x) * 4;
-          const a = pixels[idx + 3];
-          const lum = (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) / 3;
-          if (a > 40 && lum > 24) {
-            pts.push([x / (T - 1), 1 - y / (T - 1), pixels[idx], pixels[idx + 1], pixels[idx + 2]]);
-          }
+      let hitCount = 0;
+      for (let i = 0; i < totalPixels; i++) {
+        const idx = i * 4;
+        const a = pixels[idx + 3];
+        if (a > 40 && (pixels[idx] + pixels[idx + 1] + pixels[idx + 2]) > 72) {
+          hitOffset[hitCount++] = i;
         }
       }
-      const total = T * T;
-      if (pts.length === 0) {
-        for (let i = 0; i < total; i++) {
+      if (hitCount === 0) {
+        for (let i = 0; i < totalPixels; i++) {
           const p = i * 4;
           targetBuf[p] = 128;
           targetBuf[p + 1] = 128;
@@ -65,17 +51,21 @@
           targetBuf[p + 3] = 255;
         }
       } else {
-        for (let i = 0; i < total; i++) {
-          const src = pts[(i * 7919) % pts.length];
+        const scale = 255 / (T - 1);
+        for (let i = 0; i < totalPixels; i++) {
+          const pix = hitOffset[(i * 7919) % hitCount];
+          const x = pix % T;
+          const y = (pix - x) / T;
+          const sIdx = pix * 4;
           const p = i * 4;
-          targetBuf[p] = Math.round(src[0] * 255);
-          targetBuf[p + 1] = Math.round(src[1] * 255);
+          targetBuf[p] = Math.round(x * scale);
+          targetBuf[p + 1] = Math.round((T - 1 - y) * scale);
           targetBuf[p + 2] = Math.floor(Math.random() * 256);
           targetBuf[p + 3] = 255;
 
-          photoBuf[p] = src[2];
-          photoBuf[p + 1] = src[3];
-          photoBuf[p + 2] = src[4];
+          photoBuf[p] = pixels[sIdx];
+          photoBuf[p + 1] = pixels[sIdx + 1];
+          photoBuf[p + 2] = pixels[sIdx + 2];
           photoBuf[p + 3] = 255;
         }
       }
@@ -114,9 +104,26 @@
       packFromCanvas();
     }
 
+    const BRUSH_FADE_STEP = 1 / V.REF_FPS;
+    const BRUSH_IDLE_STEPS = 360;
+    let brushActive = false;
+    let brushDirty = false;
+    let brushFadeAccum = 0;
+    let brushFadeSteps = 0;
+
+    function uploadBrush() {
+      gl.bindTexture(gl.TEXTURE_2D, brushTex);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, brushCanvas);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      brushDirty = false;
+    }
+
     function clearBrush() {
       bCtx.fillStyle = 'rgb(128,128,0)';
       bCtx.fillRect(0, 0, B, B);
+      brushActive = false;
+      brushFadeAccum = 0;
+      brushFadeSteps = 0;
       uploadBrush();
     }
 
@@ -132,29 +139,45 @@
       bCtx.beginPath();
       bCtx.arc(bx, by, 9, 0, Math.PI * 2);
       bCtx.fill();
-      uploadBrush();
+      brushActive = true;
+      brushFadeSteps = 0;
+      brushDirty = true;
     }
 
-    function fadeBrush() {
-      bCtx.fillStyle = 'rgba(128,128,0,0.012)';
-      bCtx.fillRect(0, 0, B, B);
-      uploadBrush();
+    // Only fade and upload brush when painted so idle frames skip GPU uploads
+    function stepBrush(dt) {
+      if (!brushActive) {
+        if (brushDirty) uploadBrush();
+        return;
+      }
+      brushFadeAccum += dt;
+      let steps = 0;
+      while (brushFadeAccum >= BRUSH_FADE_STEP && steps < 2) {
+        brushFadeAccum -= BRUSH_FADE_STEP;
+        steps++;
+      }
+      if (steps > 0) {
+        bCtx.fillStyle = 'rgba(128,128,0,0.012)';
+        for (let i = 0; i < steps; i++) bCtx.fillRect(0, 0, B, B);
+        brushFadeSteps += steps;
+        brushDirty = true;
+        if (brushFadeSteps >= BRUSH_IDLE_STEPS) {
+          clearBrush();
+          return;
+        }
+      }
+      if (brushDirty) uploadBrush();
     }
 
-    function uploadBrush() {
-      gl.bindTexture(gl.TEXTURE_2D, brushTex);
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, brushCanvas);
-      gl.bindTexture(gl.TEXTURE_2D, null);
-    }
-
-    // Optional live Webcam Ghost
     let camVideo = null;
     let camStream = null;
     let camActive = 0;
+    let lastCamTime = -1;
 
     async function toggleWebcam() {
       if (camActive) {
         camActive = 0;
+        lastCamTime = -1;
         if (camStream) {
           camStream.getTracks().forEach(t => t.stop());
           camStream = null;
@@ -169,12 +192,15 @@
       camVideo.muted = true;
       camVideo.srcObject = stream;
       await camVideo.play();
+      lastCamTime = -1;
       camActive = 1;
       return true;
     }
 
     function updateWebcam() {
       if (!camActive || !camVideo || camVideo.readyState < 2) return;
+      if (camVideo.currentTime === lastCamTime) return;
+      lastCamTime = camVideo.currentTime;
       cCtx.drawImage(camVideo, 0, 0, C, C);
       gl.bindTexture(gl.TEXTURE_2D, camTex);
       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, camCanvas);
@@ -186,7 +212,7 @@
 
     return {
       targetTex, photoTex, brushTex, camTex,
-      setWord, setImage, clearBrush, paintBrush, fadeBrush,
+      setWord, setImage, clearBrush, paintBrush, stepBrush,
       toggleWebcam, updateWebcam,
       get hasPhoto() { return hasPhoto; },
       get camActive() { return camActive; }

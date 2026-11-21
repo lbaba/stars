@@ -18,8 +18,10 @@
   uniform int   uShape;
   uniform vec2  uWind;
   uniform float uSilk;
-  uniform vec3  uAudio;
   uniform float uFlowDir;
+  uniform vec3  uFlowOffset;
+  uniform vec3  uSpinVec;
+  uniform vec3  uTwinCenter;
   uniform vec4  uPins[4];
   uniform int   uUseCam;
 
@@ -35,7 +37,8 @@
   vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
   vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
 
-  float snoise(vec3 v) {
+  // Exact 3D simplex slope: 3 noise calls per curl instead of 12
+  vec3 snoiseGrad(vec3 v) {
     const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
     const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
     vec3 i  = floor(v + dot(v, C.yyy));
@@ -74,29 +77,23 @@
     vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
     p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
     vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-    m = m * m;
-    return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+    vec4 m2 = m * m;
+    vec4 m3 = m2 * m;
+    vec4 m4 = m2 * m2;
+    vec4 px = vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3));
+    vec4 t = -8.0 * m3 * px;
+    vec3 grad = t.x * x0 + t.y * x1 + t.z * x2 + t.w * x3
+              + m4.x * p0 + m4.y * p1 + m4.z * p2 + m4.w * p3;
+    return 42.0 * grad;
   }
 
   vec3 curlNoise(vec3 p) {
-    const float e = 0.1;
     const vec3 oy = vec3(31.416, -47.853, 12.793);
     const vec3 oz = vec3(-23.145, 19.342, 67.211);
-
-    float py1 = snoise(p + vec3(e, 0.0, 0.0) + oy), py0 = snoise(p - vec3(e, 0.0, 0.0) + oy);
-    float pz1 = snoise(p + vec3(e, 0.0, 0.0) + oz), pz0 = snoise(p - vec3(e, 0.0, 0.0) + oz);
-
-    float px1 = snoise(p + vec3(0.0, e, 0.0)),      px0 = snoise(p - vec3(0.0, e, 0.0));
-    float qz1 = snoise(p + vec3(0.0, e, 0.0) + oz), qz0 = snoise(p - vec3(0.0, e, 0.0) + oz);
-
-    float rx1 = snoise(p + vec3(0.0, 0.0, e)),      rx0 = snoise(p - vec3(0.0, 0.0, e));
-    float ry1 = snoise(p + vec3(0.0, 0.0, e) + oy), ry0 = snoise(p - vec3(0.0, 0.0, e) + oy);
-
-    return vec3(
-      (qz1 - qz0) - (ry1 - ry0),
-      (rx1 - rx0) - (pz1 - pz0),
-      (py1 - py0) - (px1 - px0)
-    ) / (2.0 * e);
+    vec3 gx = snoiseGrad(p);
+    vec3 gy = snoiseGrad(p + oy);
+    vec3 gz = snoiseGrad(p + oz);
+    return vec3(gz.y - gy.z, gx.z - gz.x, gy.x - gx.y);
   }
 
   vec3 hash3(float n) {
@@ -121,21 +118,8 @@
       life = 1.0;
     }
 
-    float bass = uAudio.x;
-    float mid = uAudio.y;
-    float phase = uTime * 0.35;
-    float freq = uFreq + 0.35 * sin(phase * 0.9) + mid * 0.35;
-    vec3 flowOffset = vec3(sin(phase * 0.7), cos(phase * 0.5), sin(phase * 0.3)) * 1.4;
-
-    vec3 curl = curlNoise(pos * freq + flowOffset) * uFlowDir;
-
-    vec3 spinAxis = normalize(vec3(
-      sin(uTime * 0.29),
-      cos(uTime * 0.21) * 0.8 + 0.4,
-      cos(uTime * 0.37)
-    ));
-    float swirlMag = (uSwirl + bass * 1.4) * (1.0 + 0.45 * sin(uTime * 0.6)) * uFlowDir;
-    vec3 swirl = cross(spinAxis, pos) * swirlMag;
+    vec3 curl = curlNoise(pos * uFreq + uFlowOffset) * uFlowDir;
+    vec3 swirl = cross(uSpinVec, pos);
 
     vec3 pull = vec3(0.0);
     if (uShape == 0) {
@@ -145,13 +129,12 @@
       vec2 xy = pos.xy;
       float xyLen = max(length(xy), 1e-4);
       vec3 ringTarget = vec3((xy / xyLen) * 0.72, 0.0);
-      pull = (ringTarget - pos) * 2.4 + vec3(-xy.y, xy.x, 0.0) * (1.2 + swirlMag * 0.35);
+      pull = (ringTarget - pos) * 2.4 + vec3(-xy.y, xy.x, 0.0) * (1.2 + uSwirl * 0.35);
     } else if (uShape == 2) {
       float waveY = sin(pos.x * 2.4 + uTime * 1.3) * 0.32;
       pull = vec3(-pos.x * 0.45, (waveY - pos.y) * 2.1, -pos.z * 2.4);
     } else if (uShape == 3) {
-      float ang = uTime * 0.45;
-      vec3 c1 = vec3(cos(ang), sin(ang), 0.15) * 0.52;
+      vec3 c1 = uTwinCenter;
       vec3 c2 = -c1;
       bool near1 = dot(pos - c1, pos - c1) < dot(pos - c2, pos - c2);
       vec3 d = pos - (near1 ? c1 : c2);
@@ -177,9 +160,10 @@
       ptrForce += away * (-uClickForce * 2.8 / (ptrDist + 0.08));
     }
 
-    // Hand-drawn Wind Brush + Pinned Whirlpools
+    // Canvas textures upload top-down, so flip Y to match world +Y up
     vec2 bUv = clamp(pos.xy * 0.42 + 0.5, 0.0, 1.0);
-    vec2 brushVal = (texture(uBrushTex, bUv).rg - 0.5) * 6.5;
+    vec2 texUv = vec2(bUv.x, 1.0 - bUv.y);
+    vec2 brushVal = (texture(uBrushTex, texUv).rg - 0.5) * 6.5;
     vec3 brushForce = vec3(brushVal.x, brushVal.y, 0.0);
 
     vec3 pinForce = vec3(0.0);
@@ -192,17 +176,16 @@
       }
     }
 
-    // Optional live Webcam Ghost push
     vec3 camForce = vec3(0.0);
     if (uUseCam == 1) {
-      float camBright = texture(uCamTex, vec2(1.0 - bUv.x, bUv.y)).r;
+      float camBright = texture(uCamTex, vec2(1.0 - texUv.x, texUv.y)).r;
       if (camBright > 0.25) {
         camForce = vec3(0.0, (camBright - 0.25) * 2.2, 0.0);
       }
     }
 
     float dustBias = mix(0.15, 0.85, uSilk);
-    float curlScale = (uCurl + mid * 0.85) * (0.75 + dustBias * seed);
+    float curlScale = uCurl * (0.75 + dustBias * seed);
     vec3 windForce = vec3(uWind.x, uWind.y, 0.0);
     vec3 targetVel = curl * curlScale + swirl + pull + ptrForce + windForce + brushForce + pinForce + camForce;
 
@@ -231,15 +214,16 @@
   layout(location = 1) in vec4 aPos;
   layout(location = 2) in vec4 aVel;
 
-  uniform vec2  uRes;
-  uniform float uAspect;
+  uniform vec2  uPx;
+  uniform vec2  uProjScale;
   uniform float uTime;
   uniform float uShutter;
   uniform float uZoom;
   uniform float uContrast;
   uniform float uOpacity;
-  uniform vec2  uCam;
+  uniform vec4  uCamTrig;
   uniform vec3  uBgCol;
+  uniform float uBgLum;
   uniform vec3  uColDark;
   uniform vec3  uColMid;
   uniform vec3  uColBright;
@@ -253,7 +237,7 @@
   uniform float uLight1Power;
   uniform float uRimPower;
   uniform float uLightPulse;
-  uniform vec3  uAudio;
+  uniform float uAudioHi;
   uniform int   uHasPhoto;
 
   uniform sampler2D uPhotoTex;
@@ -275,14 +259,14 @@
     return t < 0.5 ? mix(a, b, t * 2.0) : mix(b, c, (t - 0.5) * 2.0);
   }
 
-  vec2 toClip(vec3 worldPos, vec2 projScale, float scale) {
-    float cy = cos(uCam.x), sy = sin(uCam.x);
-    vec3 p1 = vec3(worldPos.x * cy - worldPos.z * sy, worldPos.y, worldPos.x * sy + worldPos.z * cy);
-    float cp = cos(uCam.y), sp = sin(uCam.y);
-    vec3 p = vec3(p1.x, p1.y * cp - p1.z * sp, p1.y * sp + p1.z * cp);
-    float zDist = 2.65 - p.z;
-    float s = scale / max(zDist, 0.4);
-    return p.xy * s * projScale;
+  vec3 rotCam(vec3 w) {
+    vec3 p1 = vec3(w.x * uCamTrig.x - w.z * uCamTrig.y, w.y, w.x * uCamTrig.y + w.z * uCamTrig.x);
+    return vec3(p1.x, p1.y * uCamTrig.z - p1.z * uCamTrig.w, p1.y * uCamTrig.w + p1.z * uCamTrig.z);
+  }
+
+  vec2 toClip(vec3 p) {
+    float s = uZoom / max(2.65 - p.z, 0.4);
+    return p.xy * s * uProjScale;
   }
 
   void main() {
@@ -297,40 +281,28 @@
     vec3 streakDir = speed > 1e-4 ? vel / speed : vec3(0.0, 1.0, 0.0);
     float streakLen = max(speed * shutter, 0.005);
 
-    vec3 tailW = pos - streakDir * streakLen;
-    vec3 headW = pos;
-
-    float cy = cos(uCam.x), sy = sin(uCam.x);
-    vec3 p1 = vec3(pos.x * cy - pos.z * sy, pos.y, pos.x * sy + pos.z * cy);
-    float cp = cos(uCam.y), sp = sin(uCam.y);
-    vec3 p = vec3(p1.x, p1.y * cp - p1.z * sp, p1.y * sp + p1.z * cp);
-
-    float audioZoom = 1.0 + uAudio.x * 0.14;
-    float zoomScale = uZoom * audioZoom;
-    vec2 projScale = uAspect >= 1.0 ? vec2(1.0 / uAspect, 1.0) : vec2(1.0, uAspect);
-
-    vec2 tClip = toClip(tailW, projScale, zoomScale);
-    vec2 hClip = toClip(headW, projScale, zoomScale);
+    vec3 p = rotCam(pos);
+    vec2 hClip = toClip(p);
+    vec2 tClip = toClip(rotCam(pos - streakDir * streakLen));
     vec2 delta = hClip - tClip;
     float dLen = length(delta);
     vec2 dir2 = dLen > 1e-5 ? delta / dLen : vec2(0.0, 1.0);
     vec2 perp2 = vec2(-dir2.y, dir2.x);
-    vec2 px = vec2(2.0 / max(uRes.x, 1.0), 2.0 / max(uRes.y, 1.0));
 
     vec2 finalXY;
     if (uDotShape == 0) {
-      finalXY = mix(tClip, hClip, aCorner.y) + perp2 * (aCorner.x * 0.85 * px);
+      finalXY = mix(tClip, hClip, aCorner.y) + perp2 * (aCorner.x * 0.85 * uPx);
       vUv = vec2(aCorner.x, aCorner.y);
     } else if (uDotShape == 1) {
       float rad = 2.4 + 3.4 * seed;
-      finalXY = hClip + (perp2 * aCorner.x + dir2 * (aCorner.y * 2.0 - 1.0)) * rad * px;
+      finalXY = hClip + (perp2 * aCorner.x + dir2 * (aCorner.y * 2.0 - 1.0)) * rad * uPx;
       vUv = vec2(aCorner.x, aCorner.y * 2.0 - 1.0);
     } else if (uDotShape == 2) {
       float rad = 2.6 + 4.0 * seed;
-      finalXY = hClip + (perp2 * aCorner.x * 0.7 + dir2 * (aCorner.y * 2.0 - 1.0) * 1.6) * rad * px;
+      finalXY = hClip + (perp2 * aCorner.x * 0.7 + dir2 * (aCorner.y * 2.0 - 1.0) * 1.6) * rad * uPx;
       vUv = vec2(aCorner.x, aCorner.y * 2.0 - 1.0);
     } else {
-      finalXY = mix(tClip, hClip, aCorner.y) + perp2 * (aCorner.x * 1.25 * px);
+      finalXY = mix(tClip, hClip, aCorner.y) + perp2 * (aCorner.x * 1.25 * uPx);
       vUv = vec2(aCorner.x, aCorner.y);
     }
 
@@ -339,8 +311,9 @@
     vec3 surfN = normalize(mix(p, cross(vel, p) + p * 0.5, 0.45) + 1e-4);
     float diff = clamp(dot(surfN, uLightDir) * 0.5 + 0.5, 0.0, 1.0);
     float rim = pow(clamp(1.0 - abs(surfN.z), 0.0, 1.0), 1.6);
-    float coreShade = smoothstep(0.05, 1.05, length(pos));
-    float pulse = 1.0 + uLightPulse * 0.45 * sin(uTime * 3.4 - length(pos) * 3.0) + uAudio.z * 0.35;
+    float posLen = length(pos);
+    float coreShade = smoothstep(0.05, 1.05, posLen);
+    float pulse = 1.0 + uLightPulse * 0.45 * sin(uTime * 3.4 - posLen * 3.0) + uAudioHi;
 
     float lit = pow(diff, uContrast) * (0.72 + 0.28 * coreShade) * uLight1Power * pulse;
 
@@ -366,8 +339,7 @@
 
     float bgDiff = length(finalCol - uBgCol);
     if (bgDiff < 0.08 && rim > 0.35) {
-      float bgLum = dot(uBgCol, vec3(0.299, 0.587, 0.114));
-      finalCol = mix(finalCol, bgLum > 0.5 ? vec3(0.05) : vec3(0.95), 0.45);
+      finalCol = mix(finalCol, uBgLum > 0.5 ? vec3(0.05) : vec3(0.95), 0.45);
     }
 
     vColor = clamp(finalCol, 0.0, 1.35);
@@ -520,9 +492,12 @@
       col = texture(uScene, clamp(uv, 0.0, 1.0)).rgb;
     }
 
-    vec3 blurCol = texture(uGlowTex, clamp(uv, 0.0, 1.0)).rgb;
-    if (uGlow > 0.001) {
-      col += blurCol * uGlow;
+    vec3 blurCol = vec3(0.0);
+    if (uGlow > 0.001 || uLens == 1) {
+      blurCol = texture(uGlowTex, clamp(uv, 0.0, 1.0)).rgb;
+      if (uGlow > 0.001) {
+        col += blurCol * uGlow;
+      }
     }
 
     if (uLens == 1) {

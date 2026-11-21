@@ -75,6 +75,12 @@
       return isRecording() ? (now - startMs) * 0.001 : 0;
     }
 
+    function formatTime(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = (sec % 60).toFixed(1).padStart(4, '0');
+      return `${m}:${s}`;
+    }
+
     function requestSnap() {
       snapNext = true;
     }
@@ -93,7 +99,7 @@
       }, 'image/png');
     }
 
-    return { supported, isRecording, start, stop, getElapsedSec, requestSnap, flushSnap };
+    return { supported, isRecording, start, stop, getElapsedSec, formatTime, requestSnap, flushSnap };
   }
 
   V.createRecorder = createRecorder;

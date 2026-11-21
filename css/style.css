@@ -51,6 +51,7 @@ canvas.framed {
   color: #777;
   font-size: 11px;
   pointer-events: none;
+  contain: layout style paint;
 }
 
 #toggleBtn {
@@ -58,13 +59,13 @@ canvas.framed {
   top: 12px;
   right: 12px;
   z-index: 20;
-  background: rgba(15, 15, 15, 0.88);
+  background: rgba(15, 15, 15, 0.94);
   color: #fff;
   border: 1px solid #333;
   padding: 6px 10px;
   cursor: pointer;
   font: inherit;
-  backdrop-filter: blur(8px);
+  contain: layout style paint;
 }
 #toggleBtn:hover { border-color: #777; }
 
@@ -76,13 +77,13 @@ canvas.framed {
   max-height: calc(100vh - 58px);
   overflow-y: auto;
   z-index: 19;
-  background: rgba(12, 12, 12, 0.92);
+  background: rgba(12, 12, 12, 0.95);
   border: 1px solid #2a2a2a;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  backdrop-filter: blur(10px);
+  contain: layout style paint;
 }
 #panel.hidden { display: none; }
 

@@ -6,11 +6,17 @@
   <title>Vortex Visual Studio</title>
   <link rel="stylesheet" href="css/style.css" />
   <script defer src="js/state.js"></script>
+  <script defer src="js/gl.js"></script>
   <script defer src="js/shaders.js"></script>
   <script defer src="js/masks.js"></script>
+  <script defer src="js/post.js"></script>
+  <script defer src="js/clock.js"></script>
   <script defer src="js/audio.js"></script>
   <script defer src="js/record.js"></script>
   <script defer src="js/engine.js"></script>
+  <script defer src="js/viewport.js"></script>
+  <script defer src="js/presets.js"></script>
+  <script defer src="js/input.js"></script>
   <script defer src="js/ui.js"></script>
 </head>
 <body>
@@ -109,7 +115,8 @@
     <div class="row">
       <label>Step FPS</label>
       <select id="fpsStepSel" style="flex:1">
-        <option value="0">Smooth</option>
+        <option value="0">Smooth (Max)</option>
+        <option value="60">60 fps</option>
         <option value="24">24 fps</option>
         <option value="12">12 fps</option>
         <option value="8">8 fps</option>

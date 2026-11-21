@@ -6,7 +6,9 @@
     let analyser = null;
     let data = null;
     let source = null;
+    let micStream = null;
     let elem = null;
+    let elemUrl = '';
     let dest = null;
     let peak = 0.25;
     const bands = [0, 0, 0];
@@ -16,10 +18,18 @@
         try { source.disconnect(); } catch (_) {}
         source = null;
       }
+      if (micStream) {
+        micStream.getTracks().forEach(t => t.stop());
+        micStream = null;
+      }
       if (elem) {
         elem.pause();
         elem.src = '';
         elem = null;
+      }
+      if (elemUrl) {
+        URL.revokeObjectURL(elemUrl);
+        elemUrl = '';
       }
       bands[0] = bands[1] = bands[2] = 0;
     }
@@ -41,18 +51,19 @@
     async function startMic() {
       stop();
       ensureCtx();
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      source = ctx.createMediaStreamSource(stream);
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      source = ctx.createMediaStreamSource(micStream);
       source.connect(analyser);
     }
 
     async function startFile(file) {
       stop();
       ensureCtx();
+      elemUrl = URL.createObjectURL(file);
       elem = new Audio();
       elem.crossOrigin = 'anonymous';
       elem.loop = true;
-      elem.src = URL.createObjectURL(file);
+      elem.src = elemUrl;
       source = ctx.createMediaElementSource(elem);
       source.connect(analyser);
       source.connect(ctx.destination);
@@ -60,11 +71,13 @@
       await elem.play();
     }
 
-    function sample() {
+    function sample(dt) {
+      const step = (dt || 1 / V.REF_FPS) * V.REF_FPS;
       if (!analyser || !source) {
-        bands[0] *= 0.9;
-        bands[1] *= 0.9;
-        bands[2] *= 0.9;
+        const k = Math.pow(0.9, step);
+        bands[0] = bands[0] * k < 0.0005 ? 0 : bands[0] * k;
+        bands[1] = bands[1] * k < 0.0005 ? 0 : bands[1] * k;
+        bands[2] = bands[2] * k < 0.0005 ? 0 : bands[2] * k;
         return bands;
       }
       analyser.getByteFrequencyData(data);
@@ -77,7 +90,7 @@
       h /= 56 * 255;
 
       const top = Math.max(b, m, h, 0.08);
-      peak = Math.max(top, peak * 0.992);
+      peak = Math.max(top, peak * Math.pow(0.992, step));
       const gain = V.state.audioPush / peak;
       bands[0] = Math.min(1.5, b * gain);
       bands[1] = Math.min(1.5, m * gain);
@@ -90,7 +103,11 @@
       return [];
     }
 
-    return { startMic, startFile, stop, sample, getAudioTracks, bands };
+    function isMicLive() {
+      return Boolean(micStream);
+    }
+
+    return { startMic, startFile, stop, sample, getAudioTracks, isMicLive, bands };
   }
 
   V.createAudio = createAudio;

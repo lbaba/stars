@@ -6,8 +6,13 @@ window.VORTEX = (() => {
   const MAX_ASPECT = 8.0;
   const VIDEO_BITRATE = 16000000;
   const MAX_RECORD_MS = 180000;
-  const LOW_FPS_THRESHOLD = 25;
+  const LOW_FPS_THRESHOLD = 28;
+  const SOFT_FPS_THRESHOLD = 45;
+  const RECOVER_FPS_THRESHOLD = 54;
   const SLOW_FRAMES_TRIGGER = 24;
+  const MAX_FRAME_DT = 0.05;
+  const REF_FPS = 60;
+  const HUD_UPDATE_MS = 50;
   const TARGET_TEX_SIZE = 256;
   const BRUSH_TEX_SIZE = 64;
   const CAM_TEX_SIZE = 128;
@@ -38,8 +43,14 @@ window.VORTEX = (() => {
     lightAngle: [0, 6.28], pulse: [0, 1.0], audioPush: [0, 2.0],
     mirrorSpin: [-1.5, 1.5], shape: [0, 5], colorDriver: [0, 3], mixMode: [0, 2],
     lightMode: [0, 2], dotShape: [0, 3], mirror: [0, 5], lens: [0, 6],
-    fpsStep: [0, 24]
+    fpsStep: [0, 60]
   };
+
+  const MORPH_NUM_KEYS = [
+    'curl', 'freq', 'swirl', 'silk', 'zoom', 'shutter',
+    'contrast', 'opacity', 'glow', 'trails', 'split', 'light1', 'rim'
+  ];
+  const MORPH_COL_KEYS = ['bg', 'dark', 'mid', 'bright', 'light1Col', 'light2Col'];
 
   const LOOKS = [
     {
@@ -99,13 +110,16 @@ window.VORTEX = (() => {
     return Math.min(max, Math.max(min, n));
   }
 
-  function hexToRgb(hex) {
+  function hexToRgbInto(hex, out) {
     const clean = HEX_COLOR_RE.test(hex) ? hex : '#ffffff';
-    return [
-      parseInt(clean.slice(1, 3), 16) / 255,
-      parseInt(clean.slice(3, 5), 16) / 255,
-      parseInt(clean.slice(5, 7), 16) / 255
-    ];
+    out[0] = parseInt(clean.slice(1, 3), 16) / 255;
+    out[1] = parseInt(clean.slice(3, 5), 16) / 255;
+    out[2] = parseInt(clean.slice(5, 7), 16) / 255;
+    return out;
+  }
+
+  function hexToRgb(hex) {
+    return hexToRgbInto(hex, [0, 0, 0]);
   }
 
   function rgbToHex(r, g, b) {
@@ -123,6 +137,22 @@ window.VORTEX = (() => {
     );
   }
 
+  function applyPatch(patch, onWord) {
+    if (!patch || typeof patch !== 'object') return;
+    const keys = Object.keys(patch);
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      if (k in LIMITS) {
+        state[k] = clampVal(patch[k], LIMITS[k][0], LIMITS[k][1], state[k]);
+      } else if (k === 'word' && typeof patch[k] === 'string') {
+        state.word = patch[k].slice(0, 20);
+        if (onWord) onWord(state.word);
+      } else if (typeof state[k] === 'string' && HEX_COLOR_RE.test(patch[k])) {
+        state[k] = patch[k];
+      }
+    }
+  }
+
   function showError(msg) {
     const box = document.getElementById('errBox');
     if (box) {
@@ -134,9 +164,10 @@ window.VORTEX = (() => {
 
   return {
     MAX_DOTS, MIN_DOTS, MAX_CANVAS_PIXELS, MIN_ASPECT, MAX_ASPECT,
-    VIDEO_BITRATE, MAX_RECORD_MS, LOW_FPS_THRESHOLD, SLOW_FRAMES_TRIGGER,
-    TARGET_TEX_SIZE, BRUSH_TEX_SIZE, CAM_TEX_SIZE, MAX_PINS, HEX_COLOR_RE,
-    SHAPE, TOOL, LIMITS, LOOKS, state,
-    clampVal, hexToRgb, rgbToHex, mixHex, showError
+    VIDEO_BITRATE, MAX_RECORD_MS, LOW_FPS_THRESHOLD, SOFT_FPS_THRESHOLD,
+    RECOVER_FPS_THRESHOLD, SLOW_FRAMES_TRIGGER, MAX_FRAME_DT, REF_FPS,
+    HUD_UPDATE_MS, TARGET_TEX_SIZE, BRUSH_TEX_SIZE, CAM_TEX_SIZE, MAX_PINS,
+    HEX_COLOR_RE, SHAPE, TOOL, LIMITS, LOOKS, MORPH_NUM_KEYS, MORPH_COL_KEYS,
+    state, clampVal, hexToRgbInto, hexToRgb, rgbToHex, mixHex, applyPatch, showError
   };
 })();
