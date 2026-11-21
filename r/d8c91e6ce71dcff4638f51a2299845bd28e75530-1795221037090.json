@@ -1,0 +1,126 @@
+{
+  "v": 2,
+  "id": "zc_mwpo9669_3v96",
+  "sid": "s_mwpo9667_rb8w",
+  "repo": "lbaba/stars",
+  "ts": 1795221037090,
+  "sha": "d8c91e6ce71dcff4638f51a2299845bd28e75530",
+  "branch": "main",
+  "delivery": "direct",
+  "msgSubj": "feat(sync): Synchronized 12 file(s) across 2 prompt turn(s)",
+  "msgHash": "83011d983a9d3cfe",
+  "files": [
+    [
+      "style.css",
+      "m",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/config.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/shaders.js",
+      "m",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/targets.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/media.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/engine.js",
+      "m",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "index.html",
+      "m",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/state.js",
+      "a",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/masks.js",
+      "a",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/audio.js",
+      "a",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/record.js",
+      "a",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/ui.js",
+      "a",
+      "ai",
+      2,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 12,
+    "add": 5,
+    "mod": 7,
+    "del": 0,
+    "src": {
+      "ai": 12
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 0,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 0,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 9564,
+  "hash": "d419676a3642fc76"
+}
