@@ -1,0 +1,49 @@
+{
+  "v": 2,
+  "id": "zc_mwpohpjy_fohv",
+  "sid": "s_mwpo9667_rb8w",
+  "repo": "lbaba/stars",
+  "ts": 1795221436234,
+  "sha": "670fd3bcbcc2dac15c3b9b6830e08a2cb6c848c0",
+  "branch": "main",
+  "delivery": "direct",
+  "msgSubj": "feat(sync): Synchronized 1 file(s) across 1 prompt turn(s)",
+  "msgHash": "bae5e83705ee04ed",
+  "files": [
+    [
+      "js/shaders.js",
+      "m",
+      "ai",
+      1,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 1,
+    "add": 0,
+    "mod": 1,
+    "del": 0,
+    "src": {
+      "ai": 1
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 0,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 0,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 5857,
+  "hash": "4e39c5450eac75a2"
+}
