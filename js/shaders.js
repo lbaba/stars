@@ -3,6 +3,7 @@
 
   const SIM_VS = `#version 300 es
   precision highp float;
+  precision highp int;
 
   layout(location = 0) in vec4 aPos;
   layout(location = 1) in vec4 aVel;
@@ -219,10 +220,12 @@
 
   const SIM_FS = `#version 300 es
   precision highp float;
+  precision highp int;
   void main() {}`;
 
   const RENDER_VS = `#version 300 es
   precision highp float;
+  precision highp int;
 
   layout(location = 0) in vec2 aCorner;
   layout(location = 1) in vec4 aPos;
@@ -378,6 +381,7 @@
 
   const RENDER_FS = `#version 300 es
   precision highp float;
+  precision highp int;
 
   in vec3 vColor;
   in float vAlpha;
@@ -444,6 +448,7 @@
 
   const POST_FS = `#version 300 es
   precision highp float;
+  precision highp int;
   in vec2 vUv;
   uniform sampler2D uScene;
   uniform sampler2D uGlowTex;
