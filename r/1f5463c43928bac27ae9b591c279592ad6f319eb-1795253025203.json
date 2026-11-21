@@ -1,0 +1,147 @@
+{
+  "v": 2,
+  "id": "zc_mwq7as43_gg47",
+  "sid": "s_mwq7ary9_pyni",
+  "repo": "lbaba/stars",
+  "ts": 1795253025203,
+  "sha": "1f5463c43928bac27ae9b591c279592ad6f319eb",
+  "branch": "main",
+  "delivery": "direct",
+  "msgSubj": "feat(sync): Synchronized 15 file(s) across 1 prompt turn(s)",
+  "msgHash": "3619b97d2c94d430",
+  "files": [
+    [
+      "index.html",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "css/style.css",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/state.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/gl.js",
+      "a",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/shaders.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/masks.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/post.js",
+      "a",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/clock.js",
+      "a",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/audio.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/record.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/engine.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/viewport.js",
+      "a",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/presets.js",
+      "a",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/input.js",
+      "a",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/ui.js",
+      "m",
+      "ai",
+      1,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 15,
+    "add": 6,
+    "mod": 9,
+    "del": 0,
+    "src": {
+      "ai": 15
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 0,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 0,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 9718,
+  "hash": "5095b67784939dd3"
+}
