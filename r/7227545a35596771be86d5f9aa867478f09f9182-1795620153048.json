@@ -1,0 +1,98 @@
+{
+  "v": 2,
+  "id": "zc_mww9vlif_x885",
+  "sid": "s_mww97140_oa74",
+  "repo": "lbaba/stars",
+  "ts": 1795620153048,
+  "sha": "7227545a35596771be86d5f9aa867478f09f9182",
+  "branch": "main",
+  "delivery": "direct",
+  "msgSubj": "feat(sync): Synchronized 8 file(s) across 2 prompt turn(s)",
+  "msgHash": "33dd04731a3e33ae",
+  "files": [
+    [
+      "css/style.css",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "index.html",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/state.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/gl.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/shaders.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/post.js",
+      "m",
+      "ai",
+      2,
+      0
+    ],
+    [
+      "js/engine.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/ui.js",
+      "m",
+      "ai",
+      1,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 8,
+    "add": 0,
+    "mod": 8,
+    "del": 0,
+    "src": {
+      "ai": 8
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 0,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 1,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 10774,
+  "hash": "6867ddfe9a94e79f"
+}
