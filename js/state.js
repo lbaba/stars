@@ -34,6 +34,13 @@ window.VORTEX = (() => {
     PIN: 2
   };
 
+  const BG_MODE = {
+    CUSTOM: 0,
+    BLACK: 1,
+    WHITE: 2,
+    TRANSPARENT: 3
+  };
+
   const LIMITS = {
     speed: [-2.0, 2.5], curl: [0.2, 3.5], freq: [0.4, 2.8], swirl: [0, 4.0],
     silk: [0, 1], wind: [-2.5, 2.5], gravity: [-2.5, 2.5], dots: [40, 240],
@@ -43,7 +50,7 @@ window.VORTEX = (() => {
     lightAngle: [0, 6.28], pulse: [0, 1.0], audioPush: [0, 2.0],
     mirrorSpin: [-1.5, 1.5], shape: [0, 5], colorDriver: [0, 3], mixMode: [0, 2],
     lightMode: [0, 2], dotShape: [0, 3], mirror: [0, 5], lens: [0, 6],
-    fpsStep: [0, 60]
+    fpsStep: [0, 60], bgMode: [0, 3], monoInvert: [0, 1]
   };
 
   const MORPH_NUM_KEYS = [
@@ -101,6 +108,7 @@ window.VORTEX = (() => {
     dotShape: 0, mirror: 0, mirrorSpin: 0, lens: 0,
     orbit: 0.14, zoom: 1.45, shutter: 0.022, contrast: 1.75, opacity: 1.0,
     trails: 0, glow: 0.2, split: 0, grain: 0.03, audioPush: 1.0,
+    bgMode: BG_MODE.CUSTOM, monoInvert: 0,
     word: 'VORTEX'
   };
 
@@ -149,6 +157,7 @@ window.VORTEX = (() => {
         if (onWord) onWord(state.word);
       } else if (typeof state[k] === 'string' && HEX_COLOR_RE.test(patch[k])) {
         state[k] = patch[k];
+        if (k === 'bg' && !('bgMode' in patch)) state.bgMode = BG_MODE.CUSTOM;
       }
     }
   }
@@ -167,7 +176,7 @@ window.VORTEX = (() => {
     VIDEO_BITRATE, MAX_RECORD_MS, LOW_FPS_THRESHOLD, SOFT_FPS_THRESHOLD,
     RECOVER_FPS_THRESHOLD, SLOW_FRAMES_TRIGGER, MAX_FRAME_DT, REF_FPS,
     HUD_UPDATE_MS, TARGET_TEX_SIZE, BRUSH_TEX_SIZE, CAM_TEX_SIZE, MAX_PINS,
-    HEX_COLOR_RE, SHAPE, TOOL, LIMITS, LOOKS, MORPH_NUM_KEYS, MORPH_COL_KEYS,
+    HEX_COLOR_RE, SHAPE, TOOL, BG_MODE, LIMITS, LOOKS, MORPH_NUM_KEYS, MORPH_COL_KEYS,
     state, clampVal, hexToRgbInto, hexToRgb, rgbToHex, mixHex, applyPatch, showError
   };
 })();

@@ -27,6 +27,8 @@
       mirrorSpin: 'uMirrorSpin',
       lens: 'uLens',
       invert: 'uInvert',
+      monoInvert: 'uMonoInvert',
+      transparent: 'uTransparent',
       flip: 'uFlip'
     });
 
@@ -67,6 +69,7 @@
 
     function render(p, drawScene) {
       const bg = p.bgRgb;
+      const clearAlpha = p.transparent > 0.5 ? 0 : 1;
       const needsBlur = p.glow > 0.001 || p.lens === 1;
       const usePost =
         p.trails > 0.001 ||
@@ -74,14 +77,15 @@
         p.split > 0.001 ||
         p.grain > 0.001 ||
         p.mirror > 0 ||
-        p.lens > 0 ||
         p.invert > 0.01 ||
+        p.monoInvert > 0.001 ||
+        p.transparent > 0.5 ||
         p.flip > 0.5;
 
       if (!usePost || !targets) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, p.w, p.h);
-        gl.clearColor(bg[0], bg[1], bg[2], 1);
+        gl.clearColor(bg[0], bg[1], bg[2], clearAlpha);
         gl.clear(gl.COLOR_BUFFER_BIT);
         drawScene();
         return;
@@ -105,7 +109,7 @@
         gl.bindVertexArray(emptyVAO);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       } else {
-        gl.clearColor(bg[0], bg[1], bg[2], 1);
+        gl.clearColor(bg[0], bg[1], bg[2], clearAlpha);
         gl.clear(gl.COLOR_BUFFER_BIT);
       }
 
@@ -148,6 +152,8 @@
       gl.uniform1f(uPost.mirrorSpin, p.mirrorSpin);
       gl.uniform1i(uPost.lens, p.lens);
       gl.uniform1f(uPost.invert, p.invert);
+      gl.uniform1f(uPost.monoInvert, p.monoInvert);
+      gl.uniform1f(uPost.transparent, p.transparent);
       gl.uniform1f(uPost.flip, p.flip);
       gl.bindVertexArray(emptyVAO);
       gl.drawArrays(gl.TRIANGLES, 0, 3);

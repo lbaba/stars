@@ -10,7 +10,8 @@
 
   function createContext(canvas) {
     const gl = canvas.getContext('webgl2', {
-      alpha: false,
+      alpha: true,
+      premultipliedAlpha: false,
       antialias: false,
       depth: false,
       stencil: false,

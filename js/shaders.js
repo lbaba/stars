@@ -432,6 +432,8 @@
   uniform float uMirrorSpin;
   uniform int   uLens;
   uniform float uInvert;
+  uniform float uMonoInvert;
+  uniform float uTransparent;
   uniform float uFlip;
   out vec4 fragColor;
 
@@ -524,7 +526,18 @@
       col = mix(col, 1.0 - col, clamp(uInvert, 0.0, 1.0));
     }
 
-    fragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+    col = clamp(col, 0.0, 1.0);
+    if (uMonoInvert > 0.001) {
+      float lum = dot(col, vec3(0.299, 0.587, 0.114));
+      col = mix(col, vec3(1.0 - lum), clamp(uMonoInvert, 0.0, 1.0));
+    }
+
+    float alpha = 1.0;
+    if (uTransparent > 0.5) {
+      alpha = clamp(max(col.r, max(col.g, col.b)), 0.0, 1.0);
+      col = alpha > 0.001 ? min(col / alpha, vec3(1.0)) : vec3(0.0);
+    }
+    fragColor = vec4(col, alpha);
   }`;
 
   V.SHADERS = { SIM_VS, SIM_FS, RENDER_VS, RENDER_FS, QUAD_VS, FADE_FS, BLUR_FS, POST_FS };

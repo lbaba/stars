@@ -25,7 +25,8 @@
     ['pGlow', 'vGlow', 'glow', 2],
     ['pSplit', 'vSplit', 'split', 2],
     ['pGrain', 'vGrain', 'grain', 2],
-    ['pAudio', 'vAudio', 'audioPush', 2]
+    ['pAudio', 'vAudio', 'audioPush', 2],
+    ['pMonoInvert', 'vMonoInvert', 'monoInvert', 2]
   ];
 
   const COLORS = [
@@ -38,6 +39,7 @@
     ['mixModeSel', 'mixMode'],
     ['lightModeSel', 'lightMode'],
     ['shapeSel', 'shape'],
+    ['bgModeSel', 'bgMode'],
     ['fpsStepSel', 'fpsStep'],
     ['dotShapeSel', 'dotShape'],
     ['mirrorSel', 'mirror'],
@@ -95,7 +97,11 @@
       c.el.addEventListener('input', e => {
         if (V.HEX_COLOR_RE.test(e.target.value)) {
           V.state[c.key] = e.target.value;
-          if (c.key === 'bg') engine.clearTrails();
+          if (c.key === 'bg') {
+            V.state.bgMode = V.BG_MODE.CUSTOM;
+            $('bgModeSel').value = String(V.BG_MODE.CUSTOM);
+            engine.clearTrails();
+          }
         }
       });
     });
@@ -108,6 +114,11 @@
           wordBox.classList.toggle('show', V.state.shape === V.SHAPE.WORD);
         }
       });
+    });
+
+    $('bgModeSel').addEventListener('change', () => {
+      engine.setBackgroundMode(V.state.bgMode);
+      $('cBg').value = V.state.bg;
     });
 
     wordInput.addEventListener('input', () => {

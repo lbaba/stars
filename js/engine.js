@@ -147,12 +147,25 @@
       w: 2, h: 2, bgRgb: colors.bg.rgb,
       trails: 0, glow: 0, split: 0, grain: 0,
       mirror: 0, mirrorSpin: 0, lens: 0,
-      invert: 0, flip: 0, time: 0, dt: 1 / V.REF_FPS
+      invert: 0, monoInvert: 0, transparent: 0,
+      flip: 0, time: 0, dt: 1 / V.REF_FPS
     };
 
     let drawIdx = 0;
     let drawCount = V.MIN_DOTS;
     let drawAudio = audio.bands;
+
+    function setBackgroundMode(mode) {
+      const BG = V.BG_MODE;
+      V.state.bgMode = mode;
+      if (mode === BG.BLACK || mode === BG.TRANSPARENT) V.state.bg = '#000000';
+      else if (mode === BG.WHITE) V.state.bg = '#ffffff';
+      const transparent = mode === BG.TRANSPARENT;
+      const stage = document.getElementById('stage');
+      if (stage) stage.classList.toggle('transparent', transparent);
+      canvas.classList.toggle('transparent', transparent);
+      clearTrails();
+    }
 
     function clearTrails() {
       syncColors(colors, V.state);
@@ -415,6 +428,8 @@
       postParams.mirrorSpin = st.mirrorSpin;
       postParams.lens = st.lens;
       postParams.invert = vjFlash;
+      postParams.monoInvert = st.monoInvert;
+      postParams.transparent = st.bgMode === V.BG_MODE.TRANSPARENT ? 1 : 0;
       postParams.flip = vjFlipTimer > 0 ? 1.0 : 0.0;
       postParams.time = now * 0.001;
       postParams.dt = rawDt;
@@ -435,6 +450,7 @@
       pointer,
       setSize,
       clearTrails,
+      setBackgroundMode,
       resetParticles,
       clearForces,
       addPin,

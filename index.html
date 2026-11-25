@@ -33,6 +33,15 @@
       <select id="lookSel" style="flex:1"></select>
       <button id="chaosBtn" title="Randomize look">Chaos</button>
     </div>
+    <div class="row">
+      <label>Background</label>
+      <select id="bgModeSel" style="flex:1">
+        <option value="0">Custom (picker)</option>
+        <option value="1">Black</option>
+        <option value="2">White</option>
+        <option value="3">Transparent</option>
+      </select>
+    </div>
     <div class="colors-bar">
       <div class="col-chip"><input id="cBg" type="color" value="#000000" /><span>Bg</span></div>
       <div class="col-chip"><input id="cDark" type="color" value="#101010" /><span>Dark</span></div>
@@ -55,6 +64,7 @@
       </select>
     </div>
     <div class="row"><label>Color Drift</label><input id="pHueDrift" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vHueDrift">0.00</span></div>
+    <div class="row"><label>Mono Invert</label><input id="pMonoInvert" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vMonoInvert">0.00</span></div>
 
     <div class="sec"><span>Dynamic Lights</span></div>
     <div class="row">
