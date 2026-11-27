@@ -1,0 +1,105 @@
+{
+  "v": 2,
+  "id": "zc_mwzlrk69_3ja6",
+  "sid": "s_mwzkghkm_9vfv",
+  "repo": "lbaba/stars",
+  "ts": 1795821518750,
+  "sha": "43eac9091e40412004d528bb7cc81ddda2f3bc7f",
+  "branch": "main",
+  "delivery": "direct",
+  "msgSubj": "feat(sync): Synchronized 9 file(s) across 1 prompt turn(s)",
+  "msgHash": "a922b37f1a3e33ae",
+  "files": [
+    [
+      "js/shaders.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/post.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/state.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/engine.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/input.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/ui.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/presets.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/exporter.js",
+      "m",
+      "ai",
+      1,
+      8
+    ],
+    [
+      "js/record.js",
+      "m",
+      "ai",
+      1,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 9,
+    "add": 0,
+    "mod": 9,
+    "del": 0,
+    "src": {
+      "ai": 9
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 1,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 2,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 6346,
+  "hash": "763c5a1d124a20c1"
+}
