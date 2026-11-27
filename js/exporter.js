@@ -24,7 +24,7 @@
     return V.TAG_NAME_RE.test(clean) ? clean : 'vortex-scene';
   }
 
-  function analyzeFeatures(recipe, hasCustomTarget, hasPhoto) {
+  function analyzeFeatures(recipe, hasCustomTarget, hasPhoto, hasPins) {
     const needsBloom = recipe.glow > 0.001 || recipe.lens === 1 || recipe.lens === 7;
     const needsTrails = recipe.trails > 0.001;
     const isTransparent = recipe.bgMode === V.BG_MODE.TRANSPARENT;
@@ -40,7 +40,7 @@
       photo: recipe.colorDriver === 3 && hasPhoto,
       brush: false,
       cam: false,
-      pins: false,
+      pins: Boolean(hasPins),
       mirror: recipe.mirror > 0,
       lens: recipe.lens > 0,
       bloom: needsBloom,
@@ -53,7 +53,7 @@
     };
   }
 
-  function buildRuntimeCore(recipe, features, shaders, opts, packedTarget, posterUrl) {
+  function buildRuntimeCore(recipe, features, shaders, opts, packedTarget, posterUrl, snap) {
     const safeRecipe = V.escapeJsonForHtml(recipe);
     const safeStates = V.escapeJsonForHtml(V.PRESET_STATES);
     const safeShaders = V.escapeJsonForHtml({
@@ -75,7 +75,13 @@
       scrollReact: opts.scrollReact,
       reducedMotion: opts.reducedMotion,
       autoPause: Boolean(opts.autoPause),
-      maxDpr: opts.maxDpr || 2
+      maxDpr: opts.maxDpr || 2,
+      camYaw: snap ? snap.camYaw : 0,
+      camPitch: snap ? snap.camPitch : 0,
+      activeState: snap ? snap.activeState : 'idle',
+      progress: snap ? snap.progress : 0,
+      frozen: Boolean(snap && snap.frozen),
+      pins: snap && snap.pins ? snap.pins : null
     });
 
     const postBlock = features.needsPost ? `
@@ -223,6 +229,8 @@ function mount(container, userOpts) {
   var maxDots = Math.max(20000, Math.min(240000, Math.round(st.dots * 1000 * (isMobile ? 0.55 : 1))));
 
   var canvas = document.createElement('canvas');
+  canvas.width = 0;
+  canvas.height = 0;
   canvas.style.cssText = 'display:block;width:100%;height:100%;' + (cfg.role === 'background' ? 'pointer-events:none;' : 'touch-action:none;');
   if (POSTER) {
     canvas.style.backgroundImage = 'url(' + POSTER + ')';
@@ -269,7 +277,7 @@ function mount(container, userOpts) {
   function buildGpu() {
     simP = link(gl, SHADERS.sv, SHADERS.sf, ['vPos', 'vVel']);
     renP = link(gl, SHADERS.rv, SHADERS.rf);
-    uS = locs(gl, simP, ['uDt','uTime','uPointer','uClickForce','uCurl','uFreq','uSwirl','uShape','uWind','uSilk','uFlowDir','uFlowOffset','uSpinVec','uTwinCenter','uFormParams','uIntegrator','uLoopSec','uLayerMode','uSeed','uProgress','uTargetTex']);
+    uS = locs(gl, simP, ['uDt','uTime','uPointer','uClickForce','uCurl','uFreq','uSwirl','uShape','uWind','uSilk','uFlowDir','uFlowOffset','uSpinVec','uTwinCenter','uFormParams','uIntegrator','uLoopSec','uLayerMode','uSeed','uProgress','uTargetTex','uPins[0]']);
     uR = locs(gl, renP, ['uPx','uProjScale','uTime','uShutter','uZoom','uContrast','uOpacity','uCamTrig','uBgCol','uBgLum','uColDark','uColMid','uColBright','uColorDriver','uHueDrift','uMixMode','uDotShape','uLight1Col','uLight2Col','uLight3Col','uLightDir','uLight3Dir','uLight1Power','uRimPower','uLight3Power','uLightPulse','uAudioHi','uMaterial','uSpecular','uDof','uFog','uAdditive','uLayerMode','uProgress','uHasPhoto','uPhotoTex']);
     posV = [gl.createBuffer(), gl.createBuffer()];
     velV = [gl.createBuffer(), gl.createBuffer()];
@@ -290,6 +298,8 @@ function mount(container, userOpts) {
       gl.bindBuffer(gl.ARRAY_BUFFER, velV[i]); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 0, 0); gl.vertexAttribDivisor(2, 1);
     }
     gl.bindVertexArray(null);
+    // Unbind ARRAY_BUFFER so transform feedback never conflicts with velV[1]
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
     ${(features.target || features.photo) ? 'tgtRes = decodeTargets(gl, PACKED_TARGET);' : ''}
     ${features.needsPost ? `useHdr = probeHdr(gl);
     eVao = gl.createVertexArray();
@@ -308,11 +318,12 @@ function mount(container, userOpts) {
   }
   syncPal();
 
-  var ping = 0, simT = 0, lastMs = 0, aspect = 1, yaw = 0, pitch = 0, rafId = 0;
-  var paused = false, hidden = false, offscreen = false, lost = false, dead = false, drawnFirst = false;
-  var reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var ping = 0, simT = 0, lastMs = 0, aspect = 1, yaw = Number(cfg.camYaw) || 0, pitch = Number(cfg.camPitch) || 0, rafId = 0;
+  var paused = false, frozen = Boolean(cfg.frozen), hidden = false, offscreen = false, lost = false, dead = false, drawnFirst = false;
+  var reduced = cfg.reducedMotion !== 'none' && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var ptr = { x: 0, y: 0, s: 0 }, clickF = 0, blast = 0, flash = 0, kick = 0, flipT = 0;
-  var progVal = 0, scrollVal = 0, stateName = 'idle', dotScale = 1, fpsAcc = 0, fpsCnt = 0;
+  var progVal = clamp(cfg.progress, 0, 1, 0), scrollVal = 0, stateName = cfg.activeState || 'idle', dotScale = 1, fpsAcc = 0, fpsCnt = 0;
+  var pinsArr = cfg.pins ? new Float32Array(cfg.pins) : null;
   var sb = { speedMul: 1, zoomOff: 0, glowOff: 0, light1Mul: 1, rimOff: 0, pulseOff: 0, swirlOff: 0, curlOff: 0, hueOff: 0 };
 
   function resizeFbos(w, h) {
@@ -345,13 +356,59 @@ function mount(container, userOpts) {
       w = Math.max(2, Math.floor(w * k) & ~1);
       h = Math.max(2, Math.floor(h * k) & ~1);
     }
-    if (canvas.width === w && canvas.height === h && fbos) return;
+    if (canvas.width === w && canvas.height === h && (${features.needsPost ? 'fbos' : 'true'})) return;
     canvas.width = w; canvas.height = h;
     aspect = w / h;
     gl.viewport(0, 0, w, h);
     resizeFbos(w, h);
   }
   resize();
+
+  function stepSim(sDt, count) {
+    var fDir = st.speed < 0 ? -1 : 1;
+    simT += sDt * fDir;
+    var ph = simT * 0.35;
+    var sw = (st.swirl + sb.swirlOff) * (1 + 0.45 * Math.sin(simT * 0.6)) * fDir;
+    var sx = Math.sin(simT * 0.29), sy = Math.cos(simT * 0.21) * 0.8 + 0.4, sz = Math.cos(simT * 0.37);
+    var si = sw / (Math.hypot(sx, sy, sz) || 1);
+    var pong = 1 - ping;
+    gl.useProgram(simP);
+    gl.uniform1f(uS.uDt, sDt); gl.uniform1f(uS.uTime, simT);
+    gl.uniform3f(uS.uPointer, ptr.x * Math.cos(-yaw), ptr.y, ptr.s);
+    gl.uniform1f(uS.uClickForce, clickF + blast);
+    gl.uniform1f(uS.uCurl, st.curl + sb.curlOff);
+    gl.uniform1f(uS.uFreq, st.freq + 0.35 * Math.sin(ph * 0.9));
+    gl.uniform1f(uS.uSwirl, sw); gl.uniform1i(uS.uShape, st.shape);
+    gl.uniform2f(uS.uWind, st.wind, st.gravity); gl.uniform1f(uS.uSilk, st.silk);
+    gl.uniform1f(uS.uFlowDir, fDir);
+    gl.uniform3f(uS.uFlowOffset, Math.sin(ph * 0.7) * 1.4, Math.cos(ph * 0.5) * 1.4, Math.sin(ph * 0.3) * 1.4);
+    gl.uniform3f(uS.uSpinVec, sx * si, sy * si, sz * si);
+    gl.uniform3f(uS.uTwinCenter, Math.cos(simT * 0.45) * 0.52, Math.sin(simT * 0.45) * 0.52, 0.078);
+    gl.uniform4f(uS.uFormParams, st.formA, st.formB, st.formC, st.surfaceFlow);
+    gl.uniform1i(uS.uIntegrator, st.integrator); gl.uniform1f(uS.uLoopSec, st.loopSec);
+    gl.uniform1i(uS.uLayerMode, st.layerMode); gl.uniform1f(uS.uSeed, st.seed);
+    gl.uniform1f(uS.uProgress, progVal);
+    ${features.pins ? 'if (pinsArr) gl.uniform4fv(uS["uPins[0]"], pinsArr);' : ''}
+    ${features.target ? 'if (tgtRes) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tgtRes.targetTex); gl.uniform1i(uS.uTargetTex, 0); }' : ''}
+    gl.enable(gl.RASTERIZER_DISCARD);
+    gl.bindVertexArray(sVao[ping]);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, posV[pong]);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, velV[pong]);
+    gl.beginTransformFeedback(gl.POINTS);
+    gl.drawArrays(gl.POINTS, 0, count);
+    gl.endTransformFeedback();
+    gl.bindVertexArray(null);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, null);
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
+    gl.disable(gl.RASTERIZER_DISCARD);
+    ping = pong;
+  }
+
+  // Pre-warm particles so sculpted galaxies, black holes, and words appear fully formed on frame 1
+  if (Math.abs(st.speed) > 0.001) {
+    for (var w = 0; w < 45; w++) stepSim(1 / 30 * Math.abs(st.speed), maxDots);
+  }
 
   function drawScene(count) {
     var a1 = st.lightMode === 2 ? st.lightAngle : (simT * 0.28 + st.lightAngle);
@@ -412,11 +469,15 @@ function mount(container, userOpts) {
   function frame(now) {
     if (dead) return;
     rafId = requestAnimationFrame(frame);
-    if (paused || hidden || offscreen || lost || canvas.width < 2 || canvas.height < 2) { lastMs = 0; return; }
+    if (paused || hidden || offscreen || lost) { lastMs = 0; return; }
+    if (canvas.width < 2 || canvas.height < 2 ${features.needsPost ? '|| !fbos' : ''}) {
+      resize();
+      if (canvas.width < 2 || canvas.height < 2 ${features.needsPost ? '|| !fbos' : ''}) { lastMs = 0; return; }
+    }
     var dt = lastMs > 0 ? Math.min(0.05, Math.max(0.001, (now - lastMs) * 0.001)) : 1 / 60;
     lastMs = now;
     if (reduced && cfg.reducedMotion === 'static' && drawnFirst) return;
-    var motionMul = reduced ? 0.28 : 1;
+    var motionMul = reduced ? 0.45 : 1;
 
     fpsAcc += dt; fpsCnt++;
     if (fpsAcc >= 0.8) {
@@ -445,43 +506,8 @@ function mount(container, userOpts) {
     var count = Math.max(20000, Math.min(maxDots, Math.round(maxDots * dotScale)));
     yaw += dt * st.orbit * motionMul;
     var effSp = st.speed * sb.speedMul * motionMul;
-    if (Math.abs(effSp) > 0.001) {
-      var sDt = dt * Math.abs(effSp), fDir = st.speed < 0 ? -1 : 1;
-      simT += sDt * fDir;
-      var ph = simT * 0.35;
-      var sw = (st.swirl + sb.swirlOff) * (1 + 0.45 * Math.sin(simT * 0.6)) * fDir;
-      var sx = Math.sin(simT * 0.29), sy = Math.cos(simT * 0.21) * 0.8 + 0.4, sz = Math.cos(simT * 0.37);
-      var si = sw / (Math.hypot(sx, sy, sz) || 1);
-      var pong = 1 - ping;
-      gl.useProgram(simP);
-      gl.uniform1f(uS.uDt, sDt); gl.uniform1f(uS.uTime, simT);
-      gl.uniform3f(uS.uPointer, ptr.x * Math.cos(-yaw), ptr.y, ptr.s);
-      gl.uniform1f(uS.uClickForce, clickF + blast);
-      gl.uniform1f(uS.uCurl, st.curl + sb.curlOff);
-      gl.uniform1f(uS.uFreq, st.freq + 0.35 * Math.sin(ph * 0.9));
-      gl.uniform1f(uS.uSwirl, sw); gl.uniform1i(uS.uShape, st.shape);
-      gl.uniform2f(uS.uWind, st.wind, st.gravity); gl.uniform1f(uS.uSilk, st.silk);
-      gl.uniform1f(uS.uFlowDir, fDir);
-      gl.uniform3f(uS.uFlowOffset, Math.sin(ph * 0.7) * 1.4, Math.cos(ph * 0.5) * 1.4, Math.sin(ph * 0.3) * 1.4);
-      gl.uniform3f(uS.uSpinVec, sx * si, sy * si, sz * si);
-      gl.uniform3f(uS.uTwinCenter, Math.cos(simT * 0.45) * 0.52, Math.sin(simT * 0.45) * 0.52, 0.078);
-      gl.uniform4f(uS.uFormParams, st.formA, st.formB, st.formC, st.surfaceFlow);
-      gl.uniform1i(uS.uIntegrator, st.integrator); gl.uniform1f(uS.uLoopSec, st.loopSec);
-      gl.uniform1i(uS.uLayerMode, st.layerMode); gl.uniform1f(uS.uSeed, st.seed);
-      gl.uniform1f(uS.uProgress, progVal);
-      ${features.target ? 'if (tgtRes) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tgtRes.targetTex); gl.uniform1i(uS.uTargetTex, 0); }' : ''}
-      gl.enable(gl.RASTERIZER_DISCARD);
-      gl.bindVertexArray(sVao[ping]);
-      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, posV[pong]);
-      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, velV[pong]);
-      gl.beginTransformFeedback(gl.POINTS);
-      gl.drawArrays(gl.POINTS, 0, count);
-      gl.endTransformFeedback();
-      gl.bindVertexArray(null);
-      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
-      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, null);
-      gl.disable(gl.RASTERIZER_DISCARD);
-      ping = pong;
+    if (!frozen && Math.abs(effSp) > 0.001) {
+      stepSim(dt * Math.abs(effSp), count);
     }
 
     ${features.needsPost ? `var isT = st.bgMode === 3;
@@ -557,7 +583,7 @@ function mount(container, userOpts) {
   var ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
   if (ro) ro.observe(host); else window.addEventListener('resize', resize);
   var io = cfg.autoPause && typeof IntersectionObserver !== 'undefined'
-    ? new IntersectionObserver(function (es) { offscreen = !es[0].isIntersecting; }, { threshold: 0.01 })
+    ? new IntersectionObserver(function (es) { offscreen = !(es[0].isIntersecting || es[0].intersectionRatio > 0); }, { threshold: 0 })
     : null;
   if (io) io.observe(host);
 
@@ -676,7 +702,7 @@ root.VortexAsset = { mount: mount, RECIPE: RECIPE };
         includePoster: true,
         pointerMode: V.state.pointerMode || 'local',
         scrollReact: V.state.scrollReact,
-        reducedMotion: V.state.reducedMotion || 'calm',
+        reducedMotion: V.state.reducedMotion || 'none',
         autoPause: true
       }, userOpts || {});
 
@@ -686,7 +712,8 @@ root.VortexAsset = { mount: mount, RECIPE: RECIPE };
       recipe.scrollReact = opts.scrollReact;
       recipe.reducedMotion = opts.reducedMotion;
 
-      const features = analyzeFeatures(recipe, engine.masks.hasCustomTarget, engine.masks.hasPhoto);
+      const snap = engine.getSnapshotMeta ? engine.getSnapshotMeta() : null;
+      const features = analyzeFeatures(recipe, engine.masks.hasCustomTarget, engine.masks.hasPhoto, snap && snap.pins);
       const rawShaders = V.buildShaders(features);
       const shaders = opts.compact ? {
         SIM_VS: stripGlsl(rawShaders.SIM_VS),
@@ -703,7 +730,7 @@ root.VortexAsset = { mount: mount, RECIPE: RECIPE };
       const packedTarget = (features.target || features.photo) ? engine.masks.exportPackedTarget(4096) : null;
       const poster = opts.includePoster ? engine.capturePoster(240) : '';
       const tag = safeTagName(opts.tagName);
-      const coreRaw = buildRuntimeCore(recipe, features, shaders, opts, packedTarget, poster);
+      const coreRaw = buildRuntimeCore(recipe, features, shaders, opts, packedTarget, poster, snap);
       const core = opts.compact ? compactJs(coreRaw) : coreRaw;
       const componentCode = buildComponentBundle(core, tag);
 
@@ -730,8 +757,10 @@ root.VortexAsset = { mount: mount, RECIPE: RECIPE };
         filename = 'VortexCanvas.jsx';
         snippet = `import VortexCanvas from './VortexCanvas';\n<VortexCanvas state="thinking" progress={0.6} style={{ height: 420 }} />`;
       } else {
-        const isLight = recipe.bgMode === V.BG_MODE.WHITE;
-        code = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8" />\n<meta name="viewport" content="width=device-width,initial-scale=1.0" />\n<title>Vortex Asset Preview</title>\n<style>*{margin:0;box-sizing:border-box}html,body{width:100%;height:100%;background:${isLight ? '#f4f4f6' : '#08090d'};overflow:hidden}${tag}{width:100vw;height:100vh}</style>\n</head>\n<body>\n<${tag} role="${opts.role}"></${tag}>\n<script>${escapeScriptBody(componentCode)}</script>\n</body>\n</html>`;
+        const pageBg = recipe.bgMode === V.BG_MODE.WHITE
+          ? '#ffffff'
+          : (recipe.bgMode === V.BG_MODE.TRANSPARENT ? '#0a0b10' : recipe.bg);
+        code = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8" />\n<meta name="viewport" content="width=device-width,initial-scale=1.0" />\n<title>Vortex Asset Preview</title>\n<style>*{margin:0;box-sizing:border-box}html,body{width:100%;height:100%;background:${pageBg};overflow:hidden}${tag}{display:block;width:100vw;height:100vh}</style>\n</head>\n<body>\n<${tag} role="${opts.role}"></${tag}>\n<script>${escapeScriptBody(componentCode)}</script>\n</body>\n</html>`;
         filename = `vortex-${opts.role}.html`;
         mime = 'text/html';
         snippet = `Open ${filename} directly in any browser — zero external files required.`;
