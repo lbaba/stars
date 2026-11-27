@@ -1,0 +1,143 @@
+{
+  "v": 2,
+  "id": "zc_mwzmldkl_la9d",
+  "sid": "s_mwzkghkm_9vfv",
+  "repo": "lbaba/stars",
+  "ts": 1795822909933,
+  "sha": "c74cc16392e27c2f57ebae5bab4359f12f20b5b1",
+  "branch": "main",
+  "delivery": "restore",
+  "msgSubj": "Zerocommit.dev — Restore to 7227545",
+  "msgHash": "e3edb64ce2d221e4",
+  "files": [
+    [
+      "css/style.css",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "index.html",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/engine.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/exporter.js",
+      "d",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/gl.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/input.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/masks.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/post.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/presets.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/record.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/shaders.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/state.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/ui.js",
+      "m",
+      "man",
+      1,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 13,
+    "add": 0,
+    "mod": 12,
+    "del": 1,
+    "src": {
+      "man": 13
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 0,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 0,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 3878,
+  "restore": {
+    "rid": "rst_mwzmldkc_jgb5",
+    "fromSha": "43eac9091e40412004d528bb7cc81ddda2f3bc7f",
+    "fromTree": "2aa158c4b5435424b9ef1a1c6e66999df4e1dbbf",
+    "toSha": "7227545a35596771be86d5f9aa867478f09f9182",
+    "toTree": "d51b8aba7b22936d2285382aa5f04d240e5e2b4d",
+    "backup": "backup/main-20261127-234143-43eac90",
+    "isUndo": false,
+    "undoesId": ""
+  },
+  "hash": "be9d5920470a8626"
+}
