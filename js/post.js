@@ -3,18 +3,25 @@
 
   function createPost(gl) {
     const S = V.SHADERS;
+    const useHdr = V.gl.supportsHdrTargets(gl);
     const fadeProg = V.gl.createProgram(gl, S.QUAD_VS, S.FADE_FS);
-    const blurProg = V.gl.createProgram(gl, S.QUAD_VS, S.BLUR_FS);
+    const downProg = V.gl.createProgram(gl, S.QUAD_VS, S.KAWASE_DOWN_FS);
+    const upProg = V.gl.createProgram(gl, S.QUAD_VS, S.KAWASE_UP_FS);
     const postProg = V.gl.createProgram(gl, S.QUAD_VS, S.POST_FS);
 
     const uFade = V.gl.getUniforms(gl, fadeProg, {
       prev: 'uPrev',
       bgCol: 'uBgCol',
-      decay: 'uDecay'
+      decay: 'uDecay',
+      transparent: 'uTransparent'
     });
-    const uBlur = V.gl.getUniforms(gl, blurProg, {
+    const uDown = V.gl.getUniforms(gl, downProg, {
       tex: 'uTex',
-      step: 'uStep'
+      halfPx: 'uHalfPx'
+    });
+    const uUp = V.gl.getUniforms(gl, upProg, {
+      tex: 'uTex',
+      halfPx: 'uHalfPx'
     });
     const uPost = V.gl.getUniforms(gl, postProg, {
       scene: 'uScene',
@@ -29,15 +36,18 @@
       invert: 'uInvert',
       monoInvert: 'uMonoInvert',
       transparent: 'uTransparent',
-      flip: 'uFlip'
+      flip: 'uFlip',
+      toneMap: 'uToneMap',
+      texel: 'uTexel'
     });
 
     const emptyVAO = gl.createVertexArray();
     let targets = null;
 
-    function clearTrails(bgRgb, canvasW, canvasH) {
+    function clearTrails(bgRgb, canvasW, canvasH, transparent) {
       if (!targets) return;
-      gl.clearColor(bgRgb[0], bgRgb[1], bgRgb[2], 1);
+      if (transparent) gl.clearColor(0, 0, 0, 0);
+      else gl.clearColor(bgRgb[0], bgRgb[1], bgRgb[2], 1);
       gl.bindFramebuffer(gl.FRAMEBUFFER, targets.trail0.fb);
       gl.viewport(0, 0, targets.trail0.w, targets.trail0.h);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -48,44 +58,57 @@
       gl.viewport(0, 0, canvasW, canvasH);
     }
 
-    function resize(w, h, bgRgb) {
-      if (targets) {
-        V.gl.destroyTarget(gl, targets.trail0);
-        V.gl.destroyTarget(gl, targets.trail1);
-        V.gl.destroyTarget(gl, targets.blurA);
-        V.gl.destroyTarget(gl, targets.blurB);
-      }
-      const bw = Math.max(2, Math.floor(w / 4));
-      const bh = Math.max(2, Math.floor(h / 4));
+    function destroyTargets() {
+      if (!targets) return;
+      V.gl.destroyTarget(gl, targets.trail0);
+      V.gl.destroyTarget(gl, targets.trail1);
+      V.gl.destroyTarget(gl, targets.mip1);
+      V.gl.destroyTarget(gl, targets.mip2);
+      V.gl.destroyTarget(gl, targets.bloomOut);
+      targets = null;
+    }
+
+    function resize(w, h, bgRgb, transparent) {
+      destroyTargets();
+      const sw = Math.max(2, w | 0);
+      const sh = Math.max(2, h | 0);
+      const m1w = Math.max(2, Math.floor(sw / 2));
+      const m1h = Math.max(2, Math.floor(sh / 2));
+      const m2w = Math.max(2, Math.floor(sw / 4));
+      const m2h = Math.max(2, Math.floor(sh / 4));
       targets = {
-        trail0: V.gl.makeTarget(gl, w, h),
-        trail1: V.gl.makeTarget(gl, w, h),
-        blurA: V.gl.makeTarget(gl, bw, bh),
-        blurB: V.gl.makeTarget(gl, bw, bh),
+        trail0: V.gl.makeTarget(gl, sw, sh, useHdr),
+        trail1: V.gl.makeTarget(gl, sw, sh, useHdr),
+        mip1: V.gl.makeTarget(gl, m1w, m1h, useHdr),
+        mip2: V.gl.makeTarget(gl, m2w, m2h, useHdr),
+        bloomOut: V.gl.makeTarget(gl, m1w, m1h, useHdr),
         idx: 0
       };
-      clearTrails(bgRgb, w, h);
+      clearTrails(bgRgb, sw, sh, transparent);
     }
 
     function render(p, drawScene) {
       const bg = p.bgRgb;
-      const clearAlpha = p.transparent > 0.5 ? 0 : 1;
-      const needsBlur = p.glow > 0.001 || p.lens === 1;
+      const isTrans = p.transparent > 0.5;
+      const needsBlur = p.glow > 0.001 || p.lens === 1 || p.lens === 7;
       const usePost =
         p.trails > 0.001 ||
         needsBlur ||
         p.split > 0.001 ||
         p.grain > 0.001 ||
         p.mirror > 0 ||
+        p.lens > 0 ||
+        p.toneMap > 0 ||
         p.invert > 0.01 ||
         p.monoInvert > 0.001 ||
-        p.transparent > 0.5 ||
+        isTrans ||
         p.flip > 0.5;
 
       if (!usePost || !targets) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, p.w, p.h);
-        gl.clearColor(bg[0], bg[1], bg[2], clearAlpha);
+        if (isTrans) gl.clearColor(0, 0, 0, 0);
+        else gl.clearColor(bg[0], bg[1], bg[2], 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
         drawScene();
         return;
@@ -98,7 +121,6 @@
       gl.viewport(0, 0, writeT.w, writeT.h);
 
       if (p.trails > 0.001) {
-        // Match trail length across 60fps and 120fps+ displays
         const decay = Math.pow(p.trails, p.dt * V.REF_FPS);
         gl.useProgram(fadeProg);
         gl.activeTexture(gl.TEXTURE0);
@@ -106,30 +128,41 @@
         gl.uniform1i(uFade.prev, 0);
         gl.uniform3f(uFade.bgCol, bg[0], bg[1], bg[2]);
         gl.uniform1f(uFade.decay, decay);
+        gl.uniform1f(uFade.transparent, p.transparent);
         gl.bindVertexArray(emptyVAO);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       } else {
-        gl.clearColor(bg[0], bg[1], bg[2], clearAlpha);
+        if (isTrans) gl.clearColor(0, 0, 0, 0);
+        else gl.clearColor(bg[0], bg[1], bg[2], 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
       }
 
       drawScene();
 
       if (needsBlur) {
-        gl.useProgram(blurProg);
         gl.bindVertexArray(emptyVAO);
-
-        gl.bindFramebuffer(gl.FRAMEBUFFER, targets.blurA.fb);
-        gl.viewport(0, 0, targets.blurA.w, targets.blurA.h);
+        gl.useProgram(downProg);
         gl.activeTexture(gl.TEXTURE0);
+        gl.uniform1i(uDown.tex, 0);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, targets.mip1.fb);
+        gl.viewport(0, 0, targets.mip1.w, targets.mip1.h);
         gl.bindTexture(gl.TEXTURE_2D, writeT.tex);
-        gl.uniform1i(uBlur.tex, 0);
-        gl.uniform2f(uBlur.step, 1.0 / targets.blurA.w, 0.0);
+        gl.uniform2f(uDown.halfPx, 0.5 / writeT.w, 0.5 / writeT.h);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, targets.blurB.fb);
-        gl.bindTexture(gl.TEXTURE_2D, targets.blurA.tex);
-        gl.uniform2f(uBlur.step, 0.0, 1.0 / targets.blurB.h);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, targets.mip2.fb);
+        gl.viewport(0, 0, targets.mip2.w, targets.mip2.h);
+        gl.bindTexture(gl.TEXTURE_2D, targets.mip1.tex);
+        gl.uniform2f(uDown.halfPx, 0.5 / targets.mip1.w, 0.5 / targets.mip1.h);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+        gl.useProgram(upProg);
+        gl.uniform1i(uUp.tex, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, targets.bloomOut.fb);
+        gl.viewport(0, 0, targets.bloomOut.w, targets.bloomOut.h);
+        gl.bindTexture(gl.TEXTURE_2D, targets.mip2.tex);
+        gl.uniform2f(uUp.halfPx, 0.5 / targets.mip2.w, 0.5 / targets.mip2.h);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
 
@@ -141,7 +174,7 @@
       gl.uniform1i(uPost.scene, 0);
       if (needsBlur) {
         gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, targets.blurB.tex);
+        gl.bindTexture(gl.TEXTURE_2D, targets.bloomOut.tex);
         gl.uniform1i(uPost.glowTex, 1);
       }
       gl.uniform1f(uPost.glow, p.glow);
@@ -155,6 +188,8 @@
       gl.uniform1f(uPost.monoInvert, p.monoInvert);
       gl.uniform1f(uPost.transparent, p.transparent);
       gl.uniform1f(uPost.flip, p.flip);
+      gl.uniform1i(uPost.toneMap, p.toneMap);
+      gl.uniform2f(uPost.texel, 1.0 / p.w, 1.0 / p.h);
       gl.bindVertexArray(emptyVAO);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.bindVertexArray(null);
@@ -162,7 +197,16 @@
       targets.idx = 1 - targets.idx;
     }
 
-    return { resize, clearTrails, render };
+    function destroy() {
+      destroyTargets();
+      gl.deleteVertexArray(emptyVAO);
+      gl.deleteProgram(fadeProg);
+      gl.deleteProgram(downProg);
+      gl.deleteProgram(upProg);
+      gl.deleteProgram(postProg);
+    }
+
+    return { resize, clearTrails, render, destroy, get isHdr() { return useHdr; } };
   }
 
   V.createPost = createPost;

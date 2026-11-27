@@ -5,8 +5,18 @@
     ['pHueDrift', 'vHueDrift', 'hueDrift', 2],
     ['pLight1', 'vLight1', 'light1', 2],
     ['pRim', 'vRim', 'rim', 2],
+    ['pLight3', 'vLight3', 'light3', 2],
+    ['pSpecular', 'vSpecular', 'specular', 2],
     ['pLightAngle', 'vLightAngle', 'lightAngle', 2],
     ['pPulse', 'vPulse', 'pulse', 2],
+    ['pAdditive', 'vAdditive', 'additive', 2],
+    ['pDof', 'vDof', 'dof', 2],
+    ['pFog', 'vFog', 'fog', 2],
+    ['pFormA', 'vFormA', 'formA', 1],
+    ['pFormB', 'vFormB', 'formB', 1],
+    ['pFormC', 'vFormC', 'formC', 2],
+    ['pSurfaceFlow', 'vSurfaceFlow', 'surfaceFlow', 2],
+    ['pLoopSec', 'vLoopSec', 'loopSec', 0, 's'],
     ['pSpeed', 'vSpeed', 'speed', 2],
     ['pCurl', 'vCurl', 'curl', 2],
     ['pFreq', 'vFreq', 'freq', 2],
@@ -26,24 +36,30 @@
     ['pSplit', 'vSplit', 'split', 2],
     ['pGrain', 'vGrain', 'grain', 2],
     ['pAudio', 'vAudio', 'audioPush', 2],
-    ['pMonoInvert', 'vMonoInvert', 'monoInvert', 2]
+    ['pMonoInvert', 'vMonoInvert', 'monoInvert', 2],
+    ['pScrollReact', 'vScrollReact', 'scrollReact', 2]
   ];
 
   const COLORS = [
     ['cBg', 'bg'], ['cDark', 'dark'], ['cMid', 'mid'],
-    ['cBright', 'bright'], ['cLight1', 'light1Col'], ['cLight2', 'light2Col']
+    ['cBright', 'bright'], ['cLight1', 'light1Col'],
+    ['cLight2', 'light2Col'], ['cLight3', 'light3Col']
   ];
 
   const SELECTS = [
     ['colorDriverSel', 'colorDriver'],
     ['mixModeSel', 'mixMode'],
+    ['materialSel', 'material'],
     ['lightModeSel', 'lightMode'],
     ['shapeSel', 'shape'],
+    ['layerModeSel', 'layerMode'],
+    ['integratorSel', 'integrator'],
     ['bgModeSel', 'bgMode'],
     ['fpsStepSel', 'fpsStep'],
     ['dotShapeSel', 'dotShape'],
     ['mirrorSel', 'mirror'],
-    ['lensSel', 'lens']
+    ['lensSel', 'lens'],
+    ['toneMapSel', 'toneMap']
   ];
 
   const $ = id => document.getElementById(id);
@@ -52,6 +68,7 @@
     const canvas = $('c');
     const audio = V.createAudio();
     const engine = V.createEngine(canvas, audio);
+    const exporter = V.createExporter(engine);
 
     const sliderEls = SLIDERS.map(([id, vid, key, d, suffix]) => ({
       el: $(id), out: $(vid), key, d, suffix: suffix || ''
@@ -67,6 +84,55 @@
     const fpsLabel = $('fpsLabel');
     const pZoom = $('pZoom');
     const vZoom = $('vZoom');
+    const expRoleSel = $('expRoleSel');
+    const expFmtSel = $('expFmtSel');
+    const expPtrSel = $('expPtrSel');
+    const expReducedSel = $('expReducedSel');
+    const expTagInput = $('expTagInput');
+    const expCompactChk = $('expCompactChk');
+    const expPosterChk = $('expPosterChk');
+    const expAutoPauseChk = $('expAutoPauseChk');
+    const expSizeLabel = $('expSizeLabel');
+    const expSnippet = $('expSnippet');
+    const sandboxModal = $('sandboxModal');
+    const sandboxFrame = $('sandboxFrame');
+    const sandboxBackdropSel = $('sandboxBackdropSel');
+
+    let lastExport = null;
+
+    function getExportOpts() {
+      return {
+        format: expFmtSel.value,
+        role: expRoleSel.value,
+        tagName: expTagInput.value,
+        compact: expCompactChk.checked,
+        includePoster: expPosterChk.checked,
+        pointerMode: expPtrSel.value,
+        scrollReact: V.state.scrollReact,
+        reducedMotion: expReducedSel.value,
+        autoPause: expAutoPauseChk.checked
+      };
+    }
+
+    function refreshExportPreview() {
+      lastExport = exporter.generate(getExportOpts());
+      const rawKb = (lastExport.bytes / 1024).toFixed(1);
+      const gzKb = (lastExport.gzipEstBytes / 1024).toFixed(1);
+      expSizeLabel.textContent = `${rawKb} KB (~${gzKb} KB gz)`;
+      expSnippet.value = lastExport.snippet;
+      return lastExport;
+    }
+
+    const tabBtns = Array.from(document.querySelectorAll('.tab-btn'));
+    const tabPanes = Array.from(document.querySelectorAll('.tab-pane'));
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+        tabPanes.forEach(p => p.classList.toggle('show', p.dataset.pane === target));
+        if (target === 'export') refreshExportPreview();
+      });
+    });
 
     function syncUIFromState() {
       for (let i = 0; i < sliderEls.length; i++) {
@@ -82,6 +148,9 @@
       }
       wordInput.value = V.state.word || 'VORTEX';
       wordBox.classList.toggle('show', V.state.shape === V.SHAPE.WORD);
+      expRoleSel.value = V.state.embedRole || 'background';
+      expPtrSel.value = V.state.pointerMode || 'local';
+      expReducedSel.value = V.state.reducedMotion || 'calm';
     }
 
     sliderEls.forEach(s => {
@@ -100,7 +169,7 @@
           if (c.key === 'bg') {
             V.state.bgMode = V.BG_MODE.CUSTOM;
             $('bgModeSel').value = String(V.BG_MODE.CUSTOM);
-            engine.clearTrails();
+            engine.setBackgroundMode(V.BG_MODE.CUSTOM);
           }
         }
       });
@@ -130,7 +199,8 @@
     $('logoBtn').addEventListener('click', () => logoFileInput.click());
     logoFileInput.addEventListener('change', () => {
       const file = logoFileInput.files && logoFileInput.files[0];
-      if (!file) return;
+      if (!file || file.size > V.MAX_UPLOAD_BYTES) return;
+      // Loading images/SVGs via Blob URL inside <img> neutralizes SVG scripts and external fetches
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
@@ -143,6 +213,26 @@
       img.onerror = () => URL.revokeObjectURL(url);
       img.src = url;
       logoFileInput.value = '';
+    });
+
+    const objFileInput = $('objFileInput');
+    $('objBtn').addEventListener('click', () => objFileInput.click());
+    objFileInput.addEventListener('change', async () => {
+      const file = objFileInput.files && objFileInput.files[0];
+      if (!file || file.size > V.MAX_UPLOAD_BYTES) return;
+      try {
+        const text = await file.text();
+        if (engine.masks.setObjText(text)) {
+          V.state.shape = V.SHAPE.WORD;
+          V.state.colorDriver = 0;
+          syncUIFromState();
+        } else {
+          V.showError('OBJ mesh has too few valid vertices.');
+        }
+      } catch (_) {
+        V.showError('Failed to read 3D OBJ file.');
+      }
+      objFileInput.value = '';
     });
 
     const camBtn = $('camBtn');
@@ -175,6 +265,64 @@
       presets.applyLook(V.LOOKS[parseInt(lookSel.value, 10)] || V.LOOKS[0]);
     });
     $('chaosBtn').addEventListener('click', presets.applyChaos);
+    $('varPalBtn').addEventListener('click', presets.varyPalette);
+    $('varFormBtn').addEventListener('click', presets.varyForm);
+    $('varLightBtn').addEventListener('click', presets.varyLight);
+    $('varMotionBtn').addEventListener('click', presets.varyMotion);
+
+    $('stateSel').addEventListener('change', e => engine.setInteractiveState(e.target.value));
+    $('pProgress').addEventListener('input', e => {
+      const v = V.clampVal(e.target.value, 0, 1, 0);
+      engine.setProgress(v);
+      $('vProgress').textContent = `${Math.round(v * 100)}%`;
+    });
+
+    [expRoleSel, expFmtSel, expPtrSel, expReducedSel, expCompactChk, expPosterChk, expAutoPauseChk].forEach(el => {
+      el.addEventListener('change', () => {
+        V.state.embedRole = expRoleSel.value;
+        V.state.pointerMode = expPtrSel.value;
+        V.state.reducedMotion = expReducedSel.value;
+        if (expRoleSel.value === 'background') {
+          expPtrSel.value = 'window';
+          V.state.pointerMode = 'window';
+        }
+        refreshExportPreview();
+      });
+    });
+    expTagInput.addEventListener('input', refreshExportPreview);
+
+    const expCopyBtn = $('expCopyBtn');
+    expCopyBtn.addEventListener('click', () => {
+      const res = refreshExportPreview();
+      if (navigator.clipboard) navigator.clipboard.writeText(res.code).catch(() => {});
+      expCopyBtn.textContent = 'Copied!';
+      setTimeout(() => { expCopyBtn.textContent = 'Copy JS'; }, 1200);
+    });
+
+    $('expDlBtn').addEventListener('click', () => {
+      const res = refreshExportPreview();
+      const blob = new Blob([res.code], { type: res.mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    });
+
+    function openSandbox() {
+      const res = refreshExportPreview();
+      sandboxFrame.srcdoc = exporter.buildSandboxHtml(res, sandboxBackdropSel.value);
+      sandboxModal.classList.remove('hidden');
+    }
+    $('expSandboxBtn').addEventListener('click', openSandbox);
+    sandboxBackdropSel.addEventListener('change', () => {
+      if (!sandboxModal.classList.contains('hidden')) openSandbox();
+    });
+    $('sandboxCloseBtn').addEventListener('click', () => {
+      sandboxModal.classList.add('hidden');
+      sandboxFrame.srcdoc = '';
+    });
 
     function togglePanel() { panel.classList.toggle('hidden'); }
     function togglePause() {

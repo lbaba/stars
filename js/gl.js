@@ -11,7 +11,7 @@
   function createContext(canvas) {
     const gl = canvas.getContext('webgl2', {
       alpha: true,
-      premultipliedAlpha: false,
+      premultipliedAlpha: true,
       antialias: false,
       depth: false,
       stencil: false,
@@ -19,6 +19,24 @@
     });
     if (!gl) throw new Error('WebGL2 is not supported in this browser.');
     return gl;
+  }
+
+  function supportsHdrTargets(gl) {
+    const hasExt = Boolean(gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'));
+    if (!hasExt) return false;
+    gl.getExtension('OES_texture_half_float_linear');
+    const tex = gl.createTexture();
+    const fb = gl.createFramebuffer();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, 2, 2, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.deleteFramebuffer(fb);
+    gl.deleteTexture(tex);
+    return ok;
   }
 
   function compileShader(gl, type, src) {
@@ -73,13 +91,30 @@
     return tex;
   }
 
-  function makeTarget(gl, w, h) {
-    const tex = makeTex(gl, w, h, gl.LINEAR);
+  function makeTarget(gl, w, h, hdr) {
+    const sw = Math.max(2, w | 0);
+    const sh = Math.max(2, h | 0);
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    if (hdr) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, sw, sh, 0, gl.RGBA, gl.HALF_FLOAT, null);
+    } else {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, sw, sh, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    if (hdr && gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, sw, sh, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    return { tex, fb, w, h };
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return { tex, fb, w: sw, h: sh };
   }
 
   function destroyTarget(gl, target) {
@@ -133,13 +168,26 @@
     return { posVBO, velVBO, simVAO, renderVAO, quadVBO };
   }
 
+  function destroyParticleBuffers(gl, bufs) {
+    if (!bufs) return;
+    for (let i = 0; i < 2; i++) {
+      gl.deleteBuffer(bufs.posVBO[i]);
+      gl.deleteBuffer(bufs.velVBO[i]);
+      gl.deleteVertexArray(bufs.simVAO[i]);
+      gl.deleteVertexArray(bufs.renderVAO[i]);
+    }
+    gl.deleteBuffer(bufs.quadVBO);
+  }
+
   V.gl = {
     createContext,
+    supportsHdrTargets,
     createProgram,
     getUniforms,
     makeTex,
     makeTarget,
     destroyTarget,
-    createParticleBuffers
+    createParticleBuffers,
+    destroyParticleBuffers
   };
 })();
