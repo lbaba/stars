@@ -34,12 +34,7 @@ window.VORTEX = (() => {
     SUPERFORM: 6,
     KNOT: 7,
     ATTRACTOR: 8,
-    SDF: 9,
-    BLACK_HOLE: 10,
-    SPIRAL_GALAXY: 11,
-    QUASAR_VORTEX: 12,
-    COLLIDING_GALAXIES: 13,
-    COSMIC_NEBULA: 14
+    SDF: 9
   };
 
   const INTEGRATOR = {
@@ -81,7 +76,7 @@ window.VORTEX = (() => {
 
   const EMBED_ROLES = ['background', 'orb', 'loader', 'logo', 'widget'];
   const POINTER_MODES = ['local', 'window', 'none'];
-  const REDUCED_MODES = ['none', 'calm', 'static'];
+  const REDUCED_MODES = ['calm', 'static'];
 
   const PRESET_STATES = {
     idle: {},
@@ -98,7 +93,7 @@ window.VORTEX = (() => {
     opacity: [0.2, 2.0], trails: [0, 0.95], glow: [0, 1.4], split: [0, 1.0],
     grain: [0, 0.25], hueDrift: [0, 1], light1: [0.2, 2.4], rim: [0, 2.0],
     light3: [0, 2.0], lightAngle: [0, 6.28], pulse: [0, 1.0], audioPush: [0, 2.0],
-    mirrorSpin: [-1.5, 1.5], shape: [0, 14], colorDriver: [0, 4], mixMode: [0, 2],
+    mirrorSpin: [-1.5, 1.5], shape: [0, 9], colorDriver: [0, 4], mixMode: [0, 2],
     lightMode: [0, 2], dotShape: [0, 5], mirror: [0, 5], lens: [0, 7],
     fpsStep: [0, 60], bgMode: [0, 3], monoInvert: [0, 1],
     formA: [0, 12], formB: [0, 12], formC: [0, 2], surfaceFlow: [0, 1],
@@ -125,56 +120,6 @@ window.VORTEX = (() => {
       colorDriver: 0, mixMode: 0, material: 0, layerMode: 0, shape: 0, dotShape: 0,
       hueDrift: 0, glow: 0.2, trails: 0, split: 0, contrast: 1.75, opacity: 1.0,
       lens: 0, specular: 0.35, light3: 0, dof: 0, fog: 0, additive: 0, toneMap: 1, bgMode: 0
-    },
-    {
-      name: 'Gargantua Black Hole',
-      bg: '#020204', dark: '#240902', mid: '#f57c1f', bright: '#fff5d6',
-      light1Col: '#ffd89b', light2Col: '#ff6b1a', light3Col: '#fff0c2',
-      colorDriver: 1, mixMode: 1, material: 4, layerMode: 0, shape: 10, dotShape: 0,
-      formA: 3.5, formB: 1.6, formC: 0.55, surfaceFlow: 0.7, integrator: 0,
-      speed: 1.15, curl: 0.85, swirl: 1.4, shutter: 0.028, zoom: 1.35,
-      hueDrift: 0, glow: 0.72, trails: 0.32, split: 0.08, contrast: 1.45, opacity: 0.92,
-      lens: 0, specular: 0.9, light3: 0.6, dof: 0.14, fog: 0.1, additive: 0.95, toneMap: 1, bgMode: 0
-    },
-    {
-      name: 'Andromeda Spiral',
-      bg: '#02030a', dark: '#0e1338', mid: '#6366f1', bright: '#fef0c7',
-      light1Col: '#fde68a', light2Col: '#818cf8', light3Col: '#38bdf8',
-      colorDriver: 1, mixMode: 1, material: 1, layerMode: 2, shape: 11, dotShape: 1,
-      formA: 4.0, formB: 3.8, formC: 0.45, surfaceFlow: 0.6, integrator: 0,
-      speed: 0.9, curl: 0.7, swirl: 1.1, shutter: 0.02, zoom: 1.32,
-      hueDrift: 0.03, glow: 0.58, trails: 0.28, split: 0.06, contrast: 1.5, opacity: 0.95,
-      lens: 0, specular: 0.85, light3: 0.75, dof: 0.22, fog: 0.15, additive: 0.85, toneMap: 1, bgMode: 0
-    },
-    {
-      name: 'Quasar Blazar',
-      bg: '#03020a', dark: '#1e0b40', mid: '#06b6d4', bright: '#f5d0fe',
-      light1Col: '#67e8f9', light2Col: '#e879f9', light3Col: '#38bdf8',
-      colorDriver: 1, mixMode: 1, material: 4, layerMode: 0, shape: 12, dotShape: 0,
-      formA: 4.5, formB: 4.2, formC: 0.65, surfaceFlow: 0.75, integrator: 0,
-      speed: 1.25, curl: 0.9, swirl: 1.6, shutter: 0.032, zoom: 1.35,
-      hueDrift: 0.06, glow: 0.76, trails: 0.36, split: 0.14, contrast: 1.4, opacity: 0.88,
-      lens: 0, specular: 1.0, light3: 0.8, dof: 0.12, fog: 0.12, additive: 1.0, toneMap: 1, bgMode: 0
-    },
-    {
-      name: 'Colliding Galaxies',
-      bg: '#020208', dark: '#240b2c', mid: '#ec4899', bright: '#bae6fd',
-      light1Col: '#fbcfe8', light2Col: '#38bdf8', light3Col: '#fbbf24',
-      colorDriver: 4, mixMode: 1, material: 3, layerMode: 3, shape: 13, dotShape: 0,
-      formA: 5.0, formB: 3.5, formC: 0.75, surfaceFlow: 0.6, integrator: 0,
-      speed: 1.0, curl: 0.75, swirl: 1.2, shutter: 0.024, zoom: 1.28,
-      hueDrift: 0.05, glow: 0.62, trails: 0.34, split: 0.1, contrast: 1.5, opacity: 0.9,
-      lens: 0, specular: 0.95, light3: 0.7, dof: 0.18, fog: 0.12, additive: 0.9, toneMap: 1, bgMode: 0
-    },
-    {
-      name: 'Wormhole Nebula',
-      bg: '#030208', dark: '#0f172a', mid: '#8b5cf6', bright: '#a7f3d0',
-      light1Col: '#c4b5fd', light2Col: '#34d399', light3Col: '#38bdf8',
-      colorDriver: 2, mixMode: 1, material: 3, layerMode: 2, shape: 14, dotShape: 0,
-      formA: 4.2, formB: 5.0, formC: 0.8, surfaceFlow: 0.7, integrator: 2, loopSec: 10,
-      speed: 1.1, curl: 0.95, swirl: 1.5, shutter: 0.026, zoom: 1.38,
-      hueDrift: 0.08, glow: 0.66, trails: 0.3, split: 0.12, contrast: 1.5, opacity: 0.92,
-      lens: 0, specular: 1.1, light3: 0.7, dof: 0.2, fog: 0.15, additive: 0.85, toneMap: 1, bgMode: 0
     },
     {
       name: 'AI Pulse Orb',
@@ -274,7 +219,7 @@ window.VORTEX = (() => {
       trails: 0, glow: 0.2, split: 0, grain: 0.03, audioPush: 1.0,
       bgMode: BG_MODE.CUSTOM, monoInvert: 0,
       seed: 1337, word: 'VORTEX',
-      embedRole: 'background', pointerMode: 'local', scrollReact: 0.25, reducedMotion: 'none'
+      embedRole: 'background', pointerMode: 'local', scrollReact: 0.25, reducedMotion: 'calm'
     };
   }
 

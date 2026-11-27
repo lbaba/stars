@@ -93,7 +93,7 @@
     }
 
     function varyForm() {
-      const shapes = [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+      const shapes = [0, 1, 2, 3, 4, 6, 7, 8, 9];
       applyLook({
         shape: shapes[Math.floor(Math.random() * shapes.length)],
         formA: 1.5 + Math.random() * 8.5,
@@ -136,7 +136,7 @@
     function applyChaos() {
       const inkMode = Math.random() < 0.16;
       const pal = harmoniousPalette(inkMode);
-      const shapes = [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+      const shapes = [0, 1, 2, 3, 4, 6, 7, 8, 9];
       applyLook(Object.assign(pal, {
         colorDriver: Math.floor(Math.random() * 3),
         shape: shapes[Math.floor(Math.random() * shapes.length)],

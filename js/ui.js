@@ -150,7 +150,7 @@
       wordBox.classList.toggle('show', V.state.shape === V.SHAPE.WORD);
       expRoleSel.value = V.state.embedRole || 'background';
       expPtrSel.value = V.state.pointerMode || 'local';
-      expReducedSel.value = V.state.reducedMotion || 'none';
+      expReducedSel.value = V.state.reducedMotion || 'calm';
     }
 
     sliderEls.forEach(s => {

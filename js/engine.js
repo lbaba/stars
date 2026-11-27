@@ -548,42 +548,8 @@
       }
     }
 
-    function getSnapshotMeta() {
-      let hasPins = false;
-      for (let i = 0; i < V.MAX_PINS; i++) {
-        if (Math.abs(pins[i * 4 + 2]) > 0.01) hasPins = true;
-      }
-      return {
-        camYaw,
-        camPitch,
-        activeState: activeStateName,
-        progress: progressVal,
-        frozen,
-        pins: hasPins ? Array.from(pins) : null
-      };
-    }
-
     function capturePoster(maxWidth) {
       if (contextLost || destroyed || !canvas.width || !canvas.height) return '';
-      // Draw a fresh frame synchronously because WebGL default drawing buffer clears after compose
-      syncColors(colors, st);
-      postParams.w = canvas.width;
-      postParams.h = canvas.height;
-      postParams.bgRgb = colors.bg.rgb;
-      postParams.trails = st.trails;
-      postParams.glow = Math.min(1.4, st.glow + stateBlend.glowOff);
-      postParams.split = st.split;
-      postParams.grain = st.grain;
-      postParams.mirror = st.mirror;
-      postParams.mirrorSpin = st.mirrorSpin;
-      postParams.lens = st.lens;
-      postParams.toneMap = st.toneMap;
-      postParams.invert = vjFlash;
-      postParams.monoInvert = st.monoInvert;
-      postParams.transparent = st.bgMode === V.BG_MODE.TRANSPARENT ? 1 : 0;
-      postParams.flip = vjFlipTimer > 0 ? 1.0 : 0.0;
-      post.render(postParams, drawParticlesPass);
-
       const scale = Math.min(1, (maxWidth || 280) / canvas.width);
       const pw = Math.max(2, Math.round(canvas.width * scale));
       const ph = Math.max(2, Math.round(canvas.height * scale));
@@ -631,7 +597,6 @@
       setInteractiveState,
       setProgress(v) { progressVal = V.clampVal(v, 0, 1, 0); },
       setScroll(v) { scrollVal = V.clampVal(v, 0, 1, 0); },
-      getSnapshotMeta,
       capturePoster,
       tick,
       destroy,
