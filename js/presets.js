@@ -56,12 +56,12 @@
     const bytes = new TextEncoder().encode(JSON.stringify(clean));
     let bin = '';
     for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
 
   function decodeState(code) {
     if (typeof code !== 'string' || code.length > V.MAX_RECIPE_BYTES * 1.4) return null;
-    const bin = atob(code.trim());
+    const bin = atob(code.trim().replace(/-/g, '+').replace(/_/g, '/'));
     if (bin.length > V.MAX_RECIPE_BYTES) return null;
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -179,11 +179,12 @@
 
     function copyShareLink(btn) {
       const code = encodeState(V.state);
-      const url = location.origin + location.pathname + '#s=' + code;
+      const url = location.href.split('#')[0] + '#s=' + code;
       history.replaceState(null, '', '#s=' + code);
-      if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy Link'; }, 1200);
+      V.copyText(url).then(ok => {
+        btn.textContent = ok ? 'Copied!' : 'Copy failed';
+        setTimeout(() => { btn.textContent = 'Copy Link'; }, 1200);
+      });
     }
 
     function promptLoadCode() {

@@ -294,7 +294,7 @@ function mount(container, userOpts) {
     ${features.needsPost ? `useHdr = probeHdr(gl);
     eVao = gl.createVertexArray();
     postP = link(gl, SHADERS.qv, SHADERS.pf);
-    uP = locs(gl, postP, ['uScene','uGlowTex','uGlow','uSplit','uGrain','uTime','uMirror','uMirrorSpin','uLens','uInvert','uMonoInvert','uTransparent','uFlip','uToneMap','uTexel']);
+    uP = locs(gl, postP, ['uScene','uGlowTex','uGlow','uSplit','uGrain','uTime','uMirror','uMirrorSpin','uLens','uInvert','uMonoInvert','uTransparent','uFlip','uToneMap','uTexel','uBgCol']);
     ${features.trails ? `fadeP = link(gl, SHADERS.qv, SHADERS.ff); uF = locs(gl, fadeP, ['uPrev','uBgCol','uDecay','uTransparent']);` : ''}
     ${features.bloom ? `downP = link(gl, SHADERS.qv, SHADERS.kd); upP = link(gl, SHADERS.qv, SHADERS.ku); uD = locs(gl, downP, ['uTex','uHalfPx']); uU = locs(gl, upP, ['uTex','uHalfPx']);` : ''}` : ''}
   }
@@ -347,6 +347,7 @@ function mount(container, userOpts) {
     }
     if (canvas.width === w && canvas.height === h && fbos) return;
     canvas.width = w; canvas.height = h;
+    drawnFirst = false;
     aspect = w / h;
     gl.viewport(0, 0, w, h);
     resizeFbos(w, h);
@@ -512,6 +513,7 @@ function mount(container, userOpts) {
     gl.uniform1i(uP.uLens, st.lens); gl.uniform1f(uP.uInvert, flash); gl.uniform1f(uP.uMonoInvert, st.monoInvert);
     gl.uniform1f(uP.uTransparent, isT ? 1 : 0); gl.uniform1f(uP.uFlip, flipT > 0 ? 1 : 0);
     gl.uniform1i(uP.uToneMap, st.toneMap); gl.uniform2f(uP.uTexel, 1 / canvas.width, 1 / canvas.height);
+    gl.uniform3f(uP.uBgCol, bgC[0], bgC[1], bgC[2]);
     gl.bindVertexArray(eVao); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.bindVertexArray(null);
     fbos.idx = 1 - fbos.idx;` : `var isT = st.bgMode === 3;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
@@ -540,7 +542,7 @@ function mount(container, userOpts) {
   }
   function onVis() { hidden = document.hidden; if (hidden) lastMs = 0; }
   function onLost(e) { e.preventDefault(); lost = true; }
-  function onRestore() { if (dead) return; lost = false; seedData(); buildGpu(); resize(); }
+  function onRestore() { if (dead) return; lost = false; seedData(); buildGpu(); fbos = null; resize(); }
 
   var ptrTarget = cfg.pointerMode === 'window' ? window : (cfg.pointerMode === 'local' ? canvas : null);
   if (ptrTarget) ptrTarget.addEventListener('pointermove', onPtrMove, { passive: true });

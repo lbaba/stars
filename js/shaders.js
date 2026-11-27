@@ -736,6 +736,7 @@ ${needPhoto ? `    if (uColorDriver == 3 && uHasPhoto == 1) {
   uniform float uFlip;
   uniform int   uToneMap;
   uniform vec2  uTexel;
+  uniform vec3  uBgCol;
   out vec4 fragColor;
 
   float rand2(vec2 p) {
@@ -798,8 +799,8 @@ ${needSplit ? `    float splitAmt = uSplit + (uLens == 4 ? 0.28 : 0.0);
       if (uTransparent > 0.5) alpha = max(alpha, max(sr.a, sb.a));
     }` : ''}
 
-${needBloom ? `    vec4 blurS = vec4(0.0);
-    if (uGlow > 0.001 || uLens == 1 || uLens == 7) {
+    vec4 blurS = vec4(0.0);
+${needBloom ? `    if (uGlow > 0.001 || uLens == 1 || uLens == 7) {
       blurS = texture(uGlowTex, clamp(uv, 0.0, 1.0));
       if (uGlow > 0.001) {
         col += blurS.rgb * uGlow;
@@ -836,7 +837,11 @@ ${needLens ? `    if (uLens == 1) {
     }` : ''}
 
     if (uToneMap == 1) {
-      col = aces(max(col, vec3(0.0)));
+      vec3 mapped = aces(max(col, vec3(0.0)));
+      float bgLum = dot(uBgCol, vec3(0.299, 0.587, 0.114));
+      // ACES turns white into ~#CDCDCD, so pixels close to a light background stay untouched
+      float keep = (1.0 - smoothstep(0.0, 0.35, length(col - uBgCol))) * smoothstep(0.15, 0.4, bgLum);
+      col = mix(mapped, col, keep);
     } else {
       col = clamp(col, 0.0, 1.0);
     }

@@ -38,7 +38,8 @@
       transparent: 'uTransparent',
       flip: 'uFlip',
       toneMap: 'uToneMap',
-      texel: 'uTexel'
+      texel: 'uTexel',
+      bgCol: 'uBgCol'
     });
 
     const emptyVAO = gl.createVertexArray();
@@ -190,6 +191,7 @@
       gl.uniform1f(uPost.flip, p.flip);
       gl.uniform1i(uPost.toneMap, p.toneMap);
       gl.uniform2f(uPost.texel, 1.0 / p.w, 1.0 / p.h);
+      gl.uniform3f(uPost.bgCol, bg[0], bg[1], bg[2]);
       gl.bindVertexArray(emptyVAO);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       gl.bindVertexArray(null);

@@ -1,6 +1,8 @@
 (() => {
   const V = window.VORTEX;
 
+  const TYPING_TAGS = ['INPUT', 'SELECT', 'TEXTAREA'];
+
   function bindInput(canvas, engine, viewport, actions) {
     let isDragging = false;
     let lastX = 0;
@@ -59,7 +61,10 @@
     }, { passive: false });
 
     addEventListener('keydown', e => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (TYPING_TAGS.includes(e.target.tagName)) return;
+      // Buttons activate themselves on Space; handling it here too would toggle twice
+      if (e.code === 'Space' && e.target.tagName === 'BUTTON') return;
       if (e.key === 'h' || e.key === 'H') actions.onTogglePanel();
       if (e.key === 'f' || e.key === 'F') actions.onToggleFreeze();
       if (e.code === 'Space') {

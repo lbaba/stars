@@ -294,9 +294,10 @@
     const expCopyBtn = $('expCopyBtn');
     expCopyBtn.addEventListener('click', () => {
       const res = refreshExportPreview();
-      if (navigator.clipboard) navigator.clipboard.writeText(res.code).catch(() => {});
-      expCopyBtn.textContent = 'Copied!';
-      setTimeout(() => { expCopyBtn.textContent = 'Copy JS'; }, 1200);
+      V.copyText(res.code).then(ok => {
+        expCopyBtn.textContent = ok ? 'Copied!' : 'Copy failed';
+        setTimeout(() => { expCopyBtn.textContent = 'Copy JS'; }, 1200);
+      });
     });
 
     $('expDlBtn').addEventListener('click', () => {
@@ -353,6 +354,7 @@
     }
 
     presets.loadFromHash();
+    addEventListener('hashchange', presets.loadFromHash);
 
     const saveABtn = $('saveABtn');
     const saveBBtn = $('saveBBtn');
@@ -470,6 +472,7 @@
     let lastHudMs = 0;
     let lastRecStr = '';
     let lastAudioStr = '';
+    let tickFailed = false;
     const onFps = fps => {
       if (!panel.classList.contains('hidden')) fpsLabel.textContent = `${fps} fps`;
     };
@@ -493,8 +496,15 @@
         }
       }
 
-      engine.tick(now, input.isOrbiting(), onFps, onSnap);
       requestAnimationFrame(loop);
+      try {
+        engine.tick(now, input.isOrbiting(), onFps, onSnap);
+      } catch (err) {
+        if (!tickFailed) {
+          tickFailed = true;
+          V.showError(err && err.stack ? err.stack : err);
+        }
+      }
     }
     requestAnimationFrame(loop);
   } catch (err) {

@@ -136,10 +136,13 @@
     const onContextLost = e => {
       e.preventDefault();
       contextLost = true;
+      V.showError('WebGL context lost; waiting for the browser to restore it.');
     };
     const onContextRestored = () => {
       if (destroyed) return;
       contextLost = false;
+      V.hideError();
+      masks.destroy();
       seedParticles();
       initGpu();
       setSize(canvas.width || 512, canvas.height || 512);

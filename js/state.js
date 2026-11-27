@@ -4,7 +4,8 @@ window.VORTEX = (() => {
   const MAX_CANVAS_PIXELS = 3840 * 2160;
   const MIN_ASPECT = 0.125;
   const MAX_ASPECT = 8.0;
-  const VIDEO_BITRATE = 16000000;
+  const VIDEO_BITRATE = 40000000;
+  const VIDEO_BITS_PER_PIXEL = 8;
   const MAX_RECORD_MS = 180000;
   const LOW_FPS_THRESHOLD = 28;
   const SOFT_FPS_THRESHOLD = 45;
@@ -398,9 +399,23 @@ window.VORTEX = (() => {
     console.error(msg);
   }
 
+  function hideError() {
+    const box = document.getElementById('errBox');
+    if (box) box.style.display = 'none';
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   return {
     MAX_DOTS, MIN_DOTS, MAX_CANVAS_PIXELS, MIN_ASPECT, MAX_ASPECT,
-    VIDEO_BITRATE, MAX_RECORD_MS, LOW_FPS_THRESHOLD, SOFT_FPS_THRESHOLD,
+    VIDEO_BITRATE, VIDEO_BITS_PER_PIXEL, MAX_RECORD_MS, LOW_FPS_THRESHOLD, SOFT_FPS_THRESHOLD,
     RECOVER_FPS_THRESHOLD, SLOW_FRAMES_TRIGGER, MAX_FRAME_DT, REF_FPS,
     HUD_UPDATE_MS, TARGET_TEX_SIZE, BRUSH_TEX_SIZE, CAM_TEX_SIZE, MAX_PINS,
     MAX_RECIPE_BYTES, MAX_JSON_DEPTH, MAX_UPLOAD_BYTES, MAX_IMAGE_DIM,
@@ -410,6 +425,6 @@ window.VORTEX = (() => {
     LIMITS, COLOR_KEYS, LOOKS, MORPH_NUM_KEYS, MORPH_COL_KEYS,
     state, createDefaultState, clampVal, mulberry32,
     hexToRgbInto, hexToRgb, rgbToHex, mixHex, mixHexOklab,
-    safeDecodeJson, sanitizeRecipe, escapeJsonForHtml, applyPatch, showError
+    safeDecodeJson, sanitizeRecipe, escapeJsonForHtml, applyPatch, showError, hideError, copyText
   };
 })();
