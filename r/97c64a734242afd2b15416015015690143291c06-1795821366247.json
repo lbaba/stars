@@ -1,0 +1,101 @@
+{
+  "v": 2,
+  "id": "zc_mwzloagf_zy7q",
+  "sid": "s_mwzkghkm_9vfv",
+  "repo": "lbaba/stars",
+  "ts": 1795821366247,
+  "sha": "97c64a734242afd2b15416015015690143291c06",
+  "branch": "main",
+  "delivery": "restore",
+  "msgSubj": "Zerocommit.dev — Restore to 183468c",
+  "msgHash": "7466e8eb44a7752a",
+  "files": [
+    [
+      "index.html",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/engine.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/exporter.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/presets.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/shaders.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/state.js",
+      "m",
+      "man",
+      1,
+      0
+    ],
+    [
+      "js/ui.js",
+      "m",
+      "man",
+      1,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 7,
+    "add": 0,
+    "mod": 7,
+    "del": 0,
+    "src": {
+      "man": 7
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 0,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 0,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 4020,
+  "restore": {
+    "rid": "rst_mwzloag6_zhgq",
+    "fromSha": "f578d5c1dcd90b2bb5402cf80f22cea2b85212d2",
+    "fromTree": "c61cf379d19cc8a360544c6399a56a3a50de8572",
+    "toSha": "183468cf24f3c29a3f4143dcbbe42f955059458f",
+    "toTree": "644b460f69390721ceec653aab4066a6c18102ba",
+    "backup": "backup/main-20261127-231559-f578d5c",
+    "isUndo": false,
+    "undoesId": ""
+  },
+  "hash": "e757cfe9660e940a"
+}
