@@ -1,0 +1,91 @@
+{
+  "v": 2,
+  "id": "zc_mwzleude_fpg0",
+  "sid": "s_mwzkghkm_9vfv",
+  "repo": "lbaba/stars",
+  "ts": 1795820925390,
+  "sha": "f578d5c1dcd90b2bb5402cf80f22cea2b85212d2",
+  "branch": "main",
+  "delivery": "direct",
+  "msgSubj": "feat(sync): Synchronized 7 file(s) across 1 prompt turn(s)",
+  "msgHash": "bc06634105ee04ed",
+  "files": [
+    [
+      "js/state.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/shaders.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/engine.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/presets.js",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/exporter.js",
+      "m",
+      "ai",
+      1,
+      8
+    ],
+    [
+      "index.html",
+      "m",
+      "ai",
+      1,
+      0
+    ],
+    [
+      "js/ui.js",
+      "m",
+      "ai",
+      1,
+      0
+    ]
+  ],
+  "sum": {
+    "files": 7,
+    "add": 0,
+    "mod": 7,
+    "del": 0,
+    "src": {
+      "ai": 7
+    }
+  },
+  "warn": {
+    "quarantine": 0,
+    "halluc": 0,
+    "secret": 0,
+    "runtime": 1,
+    "override": false
+  },
+  "safety": {
+    "canary": "8/8",
+    "vault": "persistent"
+  },
+  "base": {
+    "gen": 1,
+    "anc": "T",
+    "race": 0
+  },
+  "verify": 1,
+  "ms": 6233,
+  "hash": "940f94801c91b565"
+}
