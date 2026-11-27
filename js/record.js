@@ -40,42 +40,27 @@
         ...audio.getAudioTracks()
       ]);
 
-      try {
-        recorder = new MediaRecorder(stream, {
-          mimeType: fmt.mime,
-          videoBitsPerSecond: Math.min(V.VIDEO_BITRATE, canvas.width * canvas.height * V.VIDEO_BITS_PER_PIXEL)
-        });
-      } catch (err) {
-        canvasStream.getTracks().forEach(t => t.stop());
-        onStateChange(false, 'Record failed');
-        V.showError(err.message);
-        return;
-      }
-
-      recorder.onerror = () => {
-        canvasStream.getTracks().forEach(t => t.stop());
-        recorder = null;
-        onStateChange(false, 'Record failed');
-      };
+      recorder = new MediaRecorder(stream, {
+        mimeType: fmt.mime,
+        videoBitsPerSecond: V.VIDEO_BITRATE
+      });
 
       recorder.ondataavailable = e => {
         if (e.data && e.data.size > 0) chunks.push(e.data);
       };
 
       recorder.onstop = () => {
-        if (chunks.length) {
-          const blob = new Blob(chunks, { type: fmt.mime });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `vortex-${canvas.width}x${canvas.height}-${Date.now()}.${fmt.ext}`;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
-        }
+        const blob = new Blob(chunks, { type: fmt.mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vortex-${canvas.width}x${canvas.height}.${fmt.ext}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
 
         canvasStream.getTracks().forEach(t => t.stop());
         recorder = null;
-        onStateChange(false, chunks.length ? 'Saved' : 'Nothing recorded');
+        onStateChange(false, 'Saved');
       };
 
       recorder.start(250);
@@ -108,7 +93,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `vortex-${canvas.width}x${canvas.height}-${Date.now()}.png`;
+        a.download = `vortex-${canvas.width}x${canvas.height}.png`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 3000);
       }, 'image/png');

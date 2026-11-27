@@ -1,7 +1,7 @@
 (() => {
   const V = window.VORTEX;
 
-  const COLOR_KEYS = V.COLOR_KEYS;
+  const COLOR_KEYS = ['bg', 'dark', 'mid', 'bright', 'light1Col', 'light2Col'];
 
   function createColorCache() {
     const cache = {};
@@ -22,138 +22,101 @@
     }
   }
 
-  function createEngine(canvas, audio, customState) {
-    const st = customState || V.state;
-    let gl = V.gl.createContext(canvas);
+  function createEngine(canvas, audio) {
+    const gl = V.gl.createContext(canvas);
     let contextLost = false;
-    let destroyed = false;
+
+    canvas.addEventListener('webglcontextlost', e => {
+      e.preventDefault();
+      contextLost = true;
+      V.showError('Graphics paused by system. Reload page to restore.');
+    });
+
+    const S = V.SHADERS;
+    const simProg = V.gl.createProgram(gl, S.SIM_VS, S.SIM_FS, ['vPos', 'vVel']);
+    const renderProg = V.gl.createProgram(gl, S.RENDER_VS, S.RENDER_FS);
+
+    const uSim = V.gl.getUniforms(gl, simProg, {
+      dt: 'uDt',
+      time: 'uTime',
+      pointer: 'uPointer',
+      clickForce: 'uClickForce',
+      curl: 'uCurl',
+      freq: 'uFreq',
+      swirl: 'uSwirl',
+      shape: 'uShape',
+      wind: 'uWind',
+      silk: 'uSilk',
+      flowDir: 'uFlowDir',
+      flowOffset: 'uFlowOffset',
+      spinVec: 'uSpinVec',
+      twinCenter: 'uTwinCenter',
+      pins: 'uPins[0]',
+      useCam: 'uUseCam',
+      targetTex: 'uTargetTex',
+      brushTex: 'uBrushTex',
+      camTex: 'uCamTex'
+    });
+
+    const uRen = V.gl.getUniforms(gl, renderProg, {
+      px: 'uPx',
+      projScale: 'uProjScale',
+      time: 'uTime',
+      shutter: 'uShutter',
+      zoom: 'uZoom',
+      contrast: 'uContrast',
+      opacity: 'uOpacity',
+      camTrig: 'uCamTrig',
+      bgCol: 'uBgCol',
+      bgLum: 'uBgLum',
+      colDark: 'uColDark',
+      colMid: 'uColMid',
+      colBright: 'uColBright',
+      colorDriver: 'uColorDriver',
+      hueDrift: 'uHueDrift',
+      mixMode: 'uMixMode',
+      dotShape: 'uDotShape',
+      light1Col: 'uLight1Col',
+      light2Col: 'uLight2Col',
+      lightDir: 'uLightDir',
+      light1Power: 'uLight1Power',
+      rimPower: 'uRimPower',
+      lightPulse: 'uLightPulse',
+      audioHi: 'uAudioHi',
+      hasPhoto: 'uHasPhoto',
+      photoTex: 'uPhotoTex'
+    });
+
+    const masks = V.createMasks(gl);
+    const post = V.createPost(gl);
+    const clock = V.createClock();
 
     const initPos = new Float32Array(V.MAX_DOTS * 4);
     const initVel = new Float32Array(V.MAX_DOTS * 4);
 
     function seedParticles() {
-      const rand = V.mulberry32(st.seed);
       for (let i = 0; i < V.MAX_DOTS; i++) {
-        const u = rand() * 2 - 1;
-        const theta = rand() * Math.PI * 2;
-        const s = Math.sqrt(Math.max(0, 1 - u * u));
-        const r = 0.25 + Math.pow(rand(), 0.7) * 0.75;
+        const u = Math.random() * 2 - 1;
+        const theta = Math.random() * Math.PI * 2;
+        const s = Math.sqrt(1 - u * u);
+        const r = 0.25 + Math.pow(Math.random(), 0.7) * 0.75;
         const idx = i * 4;
         initPos[idx]     = s * Math.cos(theta) * r;
         initPos[idx + 1] = s * Math.sin(theta) * r;
         initPos[idx + 2] = u * r;
-        initPos[idx + 3] = rand();
+        initPos[idx + 3] = Math.random();
 
         initVel[idx]     = -initPos[idx + 2] * 0.5;
         initVel[idx + 1] = initPos[idx] * 0.2;
         initVel[idx + 2] = initPos[idx] * 0.5;
-        initVel[idx + 3] = rand();
+        initVel[idx + 3] = Math.random();
       }
     }
     seedParticles();
 
-    let simProg, renderProg, uSim, uRen, masks, post, bufs;
-
-    function initGpu() {
-      const S = V.SHADERS;
-      simProg = V.gl.createProgram(gl, S.SIM_VS, S.SIM_FS, ['vPos', 'vVel']);
-      renderProg = V.gl.createProgram(gl, S.RENDER_VS, S.RENDER_FS);
-
-      uSim = V.gl.getUniforms(gl, simProg, {
-        dt: 'uDt',
-        time: 'uTime',
-        pointer: 'uPointer',
-        clickForce: 'uClickForce',
-        curl: 'uCurl',
-        freq: 'uFreq',
-        swirl: 'uSwirl',
-        shape: 'uShape',
-        wind: 'uWind',
-        silk: 'uSilk',
-        flowDir: 'uFlowDir',
-        flowOffset: 'uFlowOffset',
-        spinVec: 'uSpinVec',
-        twinCenter: 'uTwinCenter',
-        formParams: 'uFormParams',
-        integrator: 'uIntegrator',
-        loopSec: 'uLoopSec',
-        layerMode: 'uLayerMode',
-        seed: 'uSeed',
-        progress: 'uProgress',
-        pins: 'uPins[0]',
-        useCam: 'uUseCam',
-        targetTex: 'uTargetTex',
-        brushTex: 'uBrushTex',
-        camTex: 'uCamTex'
-      });
-
-      uRen = V.gl.getUniforms(gl, renderProg, {
-        px: 'uPx',
-        projScale: 'uProjScale',
-        time: 'uTime',
-        shutter: 'uShutter',
-        zoom: 'uZoom',
-        contrast: 'uContrast',
-        opacity: 'uOpacity',
-        camTrig: 'uCamTrig',
-        bgCol: 'uBgCol',
-        bgLum: 'uBgLum',
-        colDark: 'uColDark',
-        colMid: 'uColMid',
-        colBright: 'uColBright',
-        colorDriver: 'uColorDriver',
-        hueDrift: 'uHueDrift',
-        mixMode: 'uMixMode',
-        dotShape: 'uDotShape',
-        light1Col: 'uLight1Col',
-        light2Col: 'uLight2Col',
-        light3Col: 'uLight3Col',
-        lightDir: 'uLightDir',
-        light3Dir: 'uLight3Dir',
-        light1Power: 'uLight1Power',
-        rimPower: 'uRimPower',
-        light3Power: 'uLight3Power',
-        lightPulse: 'uLightPulse',
-        audioHi: 'uAudioHi',
-        material: 'uMaterial',
-        specular: 'uSpecular',
-        dof: 'uDof',
-        fog: 'uFog',
-        additive: 'uAdditive',
-        layerMode: 'uLayerMode',
-        progress: 'uProgress',
-        hasPhoto: 'uHasPhoto',
-        photoTex: 'uPhotoTex'
-      });
-
-      masks = V.createMasks(gl);
-      post = V.createPost(gl);
-      bufs = V.gl.createParticleBuffers(gl, initPos, initVel);
-    }
-
-    initGpu();
-
-    const onContextLost = e => {
-      e.preventDefault();
-      contextLost = true;
-      V.showError('WebGL context lost; waiting for the browser to restore it.');
-    };
-    const onContextRestored = () => {
-      if (destroyed) return;
-      contextLost = false;
-      V.hideError();
-      masks.destroy();
-      seedParticles();
-      initGpu();
-      setSize(canvas.width || 512, canvas.height || 512);
-      masks.setWord(st.word);
-    };
-    canvas.addEventListener('webglcontextlost', onContextLost);
-    canvas.addEventListener('webglcontextrestored', onContextRestored);
-
-    const clock = V.createClock();
+    const bufs = V.gl.createParticleBuffers(gl, initPos, initVel);
     const colors = createColorCache();
-    syncColors(colors, st);
+    syncColors(colors, V.state);
 
     let paused = false;
     let frozen = false;
@@ -169,14 +132,6 @@
     let vjZoomKick = 0;
     let vjFlipTimer = 0;
     let vjGravDrop = 0;
-    let progressVal = 0;
-    let scrollVal = 0;
-
-    let activeStateName = 'idle';
-    const stateBlend = {
-      speedMul: 1, zoomOff: 0, glowOff: 0, light1Mul: 1,
-      rimOff: 0, pulseOff: 0, swirlOff: 0, curlOff: 0, hueOff: 0
-    };
 
     const pins = new Float32Array(V.MAX_PINS * 4);
     let pinNext = 0;
@@ -188,24 +143,23 @@
 
     const pointer = { x: 0, y: 0, s: 0 };
     const lightDir = new Float32Array(3);
-    const light3Dir = new Float32Array(3);
     const postParams = {
       w: 2, h: 2, bgRgb: colors.bg.rgb,
       trails: 0, glow: 0, split: 0, grain: 0,
-      mirror: 0, mirrorSpin: 0, lens: 0, toneMap: 1,
+      mirror: 0, mirrorSpin: 0, lens: 0,
       invert: 0, monoInvert: 0, transparent: 0,
       flip: 0, time: 0, dt: 1 / V.REF_FPS
     };
 
     let drawIdx = 0;
     let drawCount = V.MIN_DOTS;
-    let drawAudio = audio ? audio.bands : [0, 0, 0];
+    let drawAudio = audio.bands;
 
     function setBackgroundMode(mode) {
       const BG = V.BG_MODE;
-      st.bgMode = mode;
-      if (mode === BG.BLACK || mode === BG.TRANSPARENT) st.bg = '#000000';
-      else if (mode === BG.WHITE) st.bg = '#ffffff';
+      V.state.bgMode = mode;
+      if (mode === BG.BLACK || mode === BG.TRANSPARENT) V.state.bg = '#000000';
+      else if (mode === BG.WHITE) V.state.bg = '#ffffff';
       const transparent = mode === BG.TRANSPARENT;
       const stage = document.getElementById('stage');
       if (stage) stage.classList.toggle('transparent', transparent);
@@ -214,24 +168,20 @@
     }
 
     function clearTrails() {
-      if (contextLost || destroyed) return;
-      syncColors(colors, st);
-      post.clearTrails(colors.bg.rgb, canvas.width, canvas.height, st.bgMode === V.BG_MODE.TRANSPARENT);
+      syncColors(colors, V.state);
+      post.clearTrails(colors.bg.rgb, canvas.width, canvas.height);
     }
 
     function setSize(w, h) {
-      if (destroyed) return;
-      canvas.width = Math.max(2, (w | 0) & ~1);
-      canvas.height = Math.max(2, (h | 0) & ~1);
-      aspect = canvas.width / canvas.height;
-      if (contextLost) return;
+      canvas.width = Math.max(2, w & ~1);
+      canvas.height = Math.max(2, h & ~1);
       gl.viewport(0, 0, canvas.width, canvas.height);
-      syncColors(colors, st);
-      post.resize(canvas.width, canvas.height, colors.bg.rgb, st.bgMode === V.BG_MODE.TRANSPARENT);
+      aspect = canvas.width / canvas.height;
+      syncColors(colors, V.state);
+      post.resize(canvas.width, canvas.height, colors.bg.rgb);
     }
 
     function resetParticles() {
-      if (contextLost || destroyed) return;
       seedParticles();
       for (let i = 0; i < 2; i++) {
         gl.bindBuffer(gl.ARRAY_BUFFER, bufs.posVBO[i]);
@@ -271,30 +221,8 @@
       return frozen;
     }
 
-    function setInteractiveState(name) {
-      if (Object.prototype.hasOwnProperty.call(V.PRESET_STATES, name)) {
-        activeStateName = name;
-      } else {
-        activeStateName = 'idle';
-      }
-    }
-
-    function stepStateBlend(dt) {
-      const target = V.PRESET_STATES[activeStateName] || V.PRESET_STATES.idle;
-      const k = 1 - Math.exp(-5.5 * dt);
-      const tSpeedMul = target.speed ? target.speed / Math.max(Math.abs(st.speed), 0.5) : 1;
-      stateBlend.speedMul += (tSpeedMul - stateBlend.speedMul) * k;
-      stateBlend.zoomOff += ((target.zoom ? target.zoom - st.zoom : 0) - stateBlend.zoomOff) * k;
-      stateBlend.glowOff += ((target.glow ? Math.max(0, target.glow - st.glow) : 0) - stateBlend.glowOff) * k;
-      stateBlend.light1Mul += ((target.light1 ? target.light1 / Math.max(st.light1, 0.4) : 1) - stateBlend.light1Mul) * k;
-      stateBlend.rimOff += ((target.rim ? Math.max(0, target.rim - st.rim) : 0) - stateBlend.rimOff) * k;
-      stateBlend.pulseOff += ((target.pulse || 0) - stateBlend.pulseOff) * k;
-      stateBlend.swirlOff += ((target.swirl ? Math.max(0, target.swirl - st.swirl) : 0) - stateBlend.swirlOff) * k;
-      stateBlend.curlOff += ((target.curl ? Math.max(0, target.curl - st.curl) : 0) - stateBlend.curlOff) * k;
-      stateBlend.hueOff += ((target.hueDrift || 0) - stateBlend.hueOff) * k;
-    }
-
-    function updateLightDirs(t) {
+    function updateLightDir(t) {
+      const st = V.state;
       let lx, ly, lz;
       if (st.lightMode === 1) {
         lx = pointer.x;
@@ -314,15 +242,6 @@
       lightDir[0] = lx * invLen;
       lightDir[1] = ly * invLen;
       lightDir[2] = lz * invLen;
-
-      const a3 = -t * 0.42 + st.lightAngle + 2.2;
-      const l3x = Math.cos(a3);
-      const l3y = Math.sin(a3 * 0.7) * 0.8 - 0.3;
-      const l3z = Math.sin(a3) + 0.5;
-      const inv3 = 1 / (Math.hypot(l3x, l3y, l3z) || 1);
-      light3Dir[0] = l3x * inv3;
-      light3Dir[1] = l3y * inv3;
-      light3Dir[2] = l3z * inv3;
     }
 
     function stepMorph(t) {
@@ -330,16 +249,17 @@
       const k = Math.sin(t * 0.45) * 0.5 + 0.5;
       for (let i = 0; i < V.MORPH_NUM_KEYS.length; i++) {
         const key = V.MORPH_NUM_KEYS[i];
-        st[key] = presetA[key] + (presetB[key] - presetA[key]) * k;
+        V.state[key] = presetA[key] + (presetB[key] - presetA[key]) * k;
       }
       for (let i = 0; i < V.MORPH_COL_KEYS.length; i++) {
         const key = V.MORPH_COL_KEYS[i];
-        st[key] = V.mixHexOklab(presetA[key], presetB[key], k);
+        V.state[key] = V.mixHex(presetA[key], presetB[key], k);
       }
-      st.shape = k < 0.5 ? presetA.shape : presetB.shape;
+      V.state.shape = k < 0.5 ? presetA.shape : presetB.shape;
     }
 
     function stepSim(stepDt, activeCount, audioBands) {
+      const st = V.state;
       const flowDir = st.speed < 0 ? -1.0 : 1.0;
       simTime += stepDt * flowDir;
       stepMorph(simTime);
@@ -348,7 +268,7 @@
       const mid = audioBands[1];
       const phase = simTime * 0.35;
       const freqEff = st.freq + 0.35 * Math.sin(phase * 0.9) + mid * 0.35;
-      const swirlMag = (st.swirl + stateBlend.swirlOff + bass * 1.4) * (1.0 + 0.45 * Math.sin(simTime * 0.6)) * flowDir;
+      const swirlMag = (st.swirl + bass * 1.4) * (1.0 + 0.45 * Math.sin(simTime * 0.6)) * flowDir;
 
       const sx = Math.sin(simTime * 0.29);
       const sy = Math.cos(simTime * 0.21) * 0.8 + 0.4;
@@ -356,19 +276,13 @@
       const sInv = swirlMag / (Math.hypot(sx, sy, sz) || 1);
       const twinAng = simTime * 0.45;
 
-      // Rotate pointer back into world XY to account for camera orbit
-      const cy = Math.cos(-camYaw);
-      const syw = Math.sin(-camYaw);
-      const ptrX = pointer.x * cy;
-      const ptrY = pointer.y;
-
       const pong = 1 - ping;
       gl.useProgram(simProg);
       gl.uniform1f(uSim.dt, stepDt);
       gl.uniform1f(uSim.time, simTime);
-      gl.uniform3f(uSim.pointer, ptrX, ptrY, pointer.s);
+      gl.uniform3f(uSim.pointer, pointer.x, pointer.y, pointer.s);
       gl.uniform1f(uSim.clickForce, clickForce + blastDecay);
-      gl.uniform1f(uSim.curl, st.curl + stateBlend.curlOff + mid * 0.85);
+      gl.uniform1f(uSim.curl, st.curl + mid * 0.85);
       gl.uniform1f(uSim.freq, freqEff);
       gl.uniform1f(uSim.swirl, swirlMag);
       gl.uniform1i(uSim.shape, st.shape);
@@ -383,12 +297,6 @@
       );
       gl.uniform3f(uSim.spinVec, sx * sInv, sy * sInv, sz * sInv);
       gl.uniform3f(uSim.twinCenter, Math.cos(twinAng) * 0.52, Math.sin(twinAng) * 0.52, 0.078);
-      gl.uniform4f(uSim.formParams, st.formA, st.formB, st.formC, st.surfaceFlow);
-      gl.uniform1i(uSim.integrator, st.integrator);
-      gl.uniform1f(uSim.loopSec, st.loopSec);
-      gl.uniform1i(uSim.layerMode, st.layerMode);
-      gl.uniform1f(uSim.seed, st.seed);
-      gl.uniform1f(uSim.progress, progressVal);
       gl.uniform4fv(uSim.pins, pins);
       gl.uniform1i(uSim.useCam, masks.camActive);
 
@@ -419,60 +327,48 @@
     }
 
     function drawParticlesPass() {
+      const st = V.state;
       const bg = colors.bg.rgb;
       const colDark = colors.dark.rgb;
       const colMid = colors.mid.rgb;
       const colBright = colors.bright.rgb;
       const l1 = colors.light1Col.rgb;
       const l2 = colors.light2Col.rgb;
-      const l3 = colors.light3Col.rgb;
-      updateLightDirs(simTime);
+      updateLightDir(simTime);
 
       const projX = aspect >= 1 ? 1 / aspect : 1;
       const projY = aspect >= 1 ? 1 : aspect;
       const bgLum = bg[0] * 0.299 + bg[1] * 0.587 + bg[2] * 0.114;
-      const effYaw = camYaw + scrollVal * st.scrollReact * 1.4;
-      const effPitch = V.clampVal(camPitch + (scrollVal - 0.5) * st.scrollReact * 0.4, -1.35, 1.35, camPitch);
 
-      // Unified premultiplied Over + Plus blend state handles smoke, ink, and additive fire together
       gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      if (st.mixMode === 1) gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      else gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
       gl.useProgram(renderProg);
       gl.uniform2f(uRen.px, 2 / Math.max(canvas.width, 1), 2 / Math.max(canvas.height, 1));
       gl.uniform2f(uRen.projScale, projX, projY);
       gl.uniform1f(uRen.time, simTime);
       gl.uniform1f(uRen.shutter, st.shutter);
-      gl.uniform1f(uRen.zoom, (st.zoom + stateBlend.zoomOff + vjZoomKick) * (1 + drawAudio[0] * 0.14));
+      gl.uniform1f(uRen.zoom, (st.zoom + vjZoomKick) * (1 + drawAudio[0] * 0.14));
       gl.uniform1f(uRen.contrast, st.contrast);
       gl.uniform1f(uRen.opacity, st.opacity);
-      gl.uniform4f(uRen.camTrig, Math.cos(effYaw), Math.sin(effYaw), Math.cos(effPitch), Math.sin(effPitch));
+      gl.uniform4f(uRen.camTrig, Math.cos(camYaw), Math.sin(camYaw), Math.cos(camPitch), Math.sin(camPitch));
       gl.uniform3f(uRen.bgCol, bg[0], bg[1], bg[2]);
       gl.uniform1f(uRen.bgLum, bgLum);
       gl.uniform3f(uRen.colDark, colDark[0], colDark[1], colDark[2]);
       gl.uniform3f(uRen.colMid, colMid[0], colMid[1], colMid[2]);
       gl.uniform3f(uRen.colBright, colBright[0], colBright[1], colBright[2]);
       gl.uniform1i(uRen.colorDriver, st.colorDriver);
-      gl.uniform1f(uRen.hueDrift, st.hueDrift + stateBlend.hueOff);
+      gl.uniform1f(uRen.hueDrift, st.hueDrift);
       gl.uniform1i(uRen.mixMode, st.mixMode);
       gl.uniform1i(uRen.dotShape, st.dotShape);
       gl.uniform3f(uRen.light1Col, l1[0], l1[1], l1[2]);
       gl.uniform3f(uRen.light2Col, l2[0], l2[1], l2[2]);
-      gl.uniform3f(uRen.light3Col, l3[0], l3[1], l3[2]);
       gl.uniform3f(uRen.lightDir, lightDir[0], lightDir[1], lightDir[2]);
-      gl.uniform3f(uRen.light3Dir, light3Dir[0], light3Dir[1], light3Dir[2]);
-      gl.uniform1f(uRen.light1Power, st.light1 * stateBlend.light1Mul);
-      gl.uniform1f(uRen.rimPower, st.rim + stateBlend.rimOff);
-      gl.uniform1f(uRen.light3Power, st.light3);
-      gl.uniform1f(uRen.lightPulse, Math.min(1, st.pulse + stateBlend.pulseOff));
+      gl.uniform1f(uRen.light1Power, st.light1);
+      gl.uniform1f(uRen.rimPower, st.rim);
+      gl.uniform1f(uRen.lightPulse, st.pulse);
       gl.uniform1f(uRen.audioHi, drawAudio[2] * 0.35);
-      gl.uniform1i(uRen.material, st.material);
-      gl.uniform1f(uRen.specular, st.specular);
-      gl.uniform1f(uRen.dof, st.dof);
-      gl.uniform1f(uRen.fog, st.fog);
-      gl.uniform1f(uRen.additive, st.additive);
-      gl.uniform1i(uRen.layerMode, st.layerMode);
-      gl.uniform1f(uRen.progress, progressVal);
       gl.uniform1i(uRen.hasPhoto, masks.hasPhoto);
 
       gl.activeTexture(gl.TEXTURE2);
@@ -486,11 +382,10 @@
     }
 
     function tick(now, isOrbiting, onFps, onRecordEndFrame) {
-      if (contextLost || destroyed) return;
+      if (contextLost) return;
       const frame = clock.tick(now, onFps);
       const rawDt = frame.rawDt;
 
-      stepStateBlend(rawDt);
       pointer.s = clock.snapZero(pointer.s * clock.decay(0.94, rawDt));
       blastDecay = clock.snapZero(blastDecay * clock.decay(0.86, rawDt));
       vjFlash = clock.snapZero(vjFlash * clock.decay(0.82, rawDt));
@@ -498,7 +393,8 @@
       vjGravDrop = clock.snapZero(vjGravDrop * clock.decay(0.88, rawDt));
       if (vjFlipTimer > 0) vjFlipTimer = Math.max(0, vjFlipTimer - rawDt);
 
-      const audioBands = audio ? audio.sample(rawDt) : drawAudio;
+      const audioBands = audio.sample(rawDt);
+      const st = V.state;
       const activeCount = Math.max(
         V.MIN_DOTS,
         Math.min(V.MAX_DOTS, Math.round(st.dots * 1000 * frame.autoDotFactor))
@@ -511,9 +407,8 @@
         camYaw += rawDt * st.orbit;
       }
 
-      const effSpeed = st.speed * stateBlend.speedMul;
-      if (!paused && !frozen && Math.abs(effSpeed) > 0.001) {
-        const stepDt = clock.consumeStep(rawDt * Math.abs(effSpeed), st.fpsStep);
+      if (!paused && !frozen && Math.abs(st.speed) > 0.001) {
+        const stepDt = clock.consumeStep(rawDt * Math.abs(st.speed), st.fpsStep);
         if (stepDt > 0) stepSim(stepDt, activeCount, audioBands);
       }
 
@@ -526,13 +421,12 @@
       postParams.h = canvas.height;
       postParams.bgRgb = colors.bg.rgb;
       postParams.trails = st.trails;
-      postParams.glow = frame.autoSkipGlow ? 0 : Math.min(1.4, st.glow + stateBlend.glowOff);
+      postParams.glow = frame.autoSkipGlow ? 0 : st.glow;
       postParams.split = st.split + audioBands[2] * 0.25;
       postParams.grain = st.grain;
       postParams.mirror = st.mirror;
       postParams.mirrorSpin = st.mirrorSpin;
       postParams.lens = st.lens;
-      postParams.toneMap = st.toneMap;
       postParams.invert = vjFlash;
       postParams.monoInvert = st.monoInvert;
       postParams.transparent = st.bgMode === V.BG_MODE.TRANSPARENT ? 1 : 0;
@@ -551,44 +445,8 @@
       }
     }
 
-    function capturePoster(maxWidth) {
-      if (contextLost || destroyed || !canvas.width || !canvas.height) return '';
-      const scale = Math.min(1, (maxWidth || 280) / canvas.width);
-      const pw = Math.max(2, Math.round(canvas.width * scale));
-      const ph = Math.max(2, Math.round(canvas.height * scale));
-      const tmp = document.createElement('canvas');
-      tmp.width = pw;
-      tmp.height = ph;
-      const ctx = tmp.getContext('2d');
-      if (!ctx) return '';
-      try {
-        ctx.drawImage(canvas, 0, 0, pw, ph);
-        const webp = tmp.toDataURL('image/webp', 0.72);
-        return webp.startsWith('data:image/webp') ? webp : tmp.toDataURL('image/png');
-      } catch (_) {
-        return '';
-      }
-    }
-
-    function destroy(releaseContext) {
-      if (destroyed) return;
-      destroyed = true;
-      canvas.removeEventListener('webglcontextlost', onContextLost);
-      canvas.removeEventListener('webglcontextrestored', onContextRestored);
-      if (masks) masks.destroy();
-      if (post) post.destroy();
-      if (bufs) V.gl.destroyParticleBuffers(gl, bufs);
-      if (simProg) gl.deleteProgram(simProg);
-      if (renderProg) gl.deleteProgram(renderProg);
-      if (releaseContext) {
-        const ext = gl.getExtension('WEBGL_lose_context');
-        if (ext) ext.loseContext();
-      }
-    }
-
     return {
-      get masks() { return masks; },
-      get state() { return st; },
+      masks,
       pointer,
       setSize,
       clearTrails,
@@ -597,12 +455,7 @@
       clearForces,
       addPin,
       triggerVJ,
-      setInteractiveState,
-      setProgress(v) { progressVal = V.clampVal(v, 0, 1, 0); },
-      setScroll(v) { scrollVal = V.clampVal(v, 0, 1, 0); },
-      capturePoster,
       tick,
-      destroy,
       get aspect() { return aspect; },
       get paused() { return paused; },
       set paused(v) { paused = v; },
@@ -618,11 +471,11 @@
         camPitch = V.clampVal(camPitch + dy, -1.35, 1.35, camPitch);
       },
       resetAutoDots() { clock.resetAutoDots(); },
-      setPresetA() { presetA = Object.assign({}, st); },
-      setPresetB() { presetB = Object.assign({}, st); },
+      setPresetA() { presetA = Object.assign({}, V.state); },
+      setPresetB() { presetB = Object.assign({}, V.state); },
       toggleMorph() {
-        if (!presetA) presetA = Object.assign({}, st);
-        if (!presetB) presetB = Object.assign({}, st, V.LOOKS[4], { shape: 6 });
+        if (!presetA) presetA = Object.assign({}, V.state);
+        if (!presetB) presetB = Object.assign({}, V.state, V.LOOKS[2], { shape: 1 });
         morphing = !morphing;
         return morphing;
       }

@@ -16,7 +16,6 @@
   <script defer src="js/engine.js"></script>
   <script defer src="js/viewport.js"></script>
   <script defer src="js/presets.js"></script>
-  <script defer src="js/exporter.js"></script>
   <script defer src="js/input.js"></script>
   <script defer src="js/ui.js"></script>
 </head>
@@ -28,373 +27,240 @@
   <button id="toggleBtn" title="Toggle Panel (H)">Controls [H]</button>
 
   <aside id="panel">
-    <div class="sec"><span>Vortex Studio</span><span id="fpsLabel">-- fps</span></div>
+    <div class="sec"><span>Looks &amp; Colors</span><span id="fpsLabel">-- fps</span></div>
     <div class="row">
+      <label>Mood</label>
       <select id="lookSel" style="flex:1"></select>
-      <button id="chaosBtn" title="Randomize everything">Chaos</button>
+      <button id="chaosBtn" title="Randomize look">Chaos</button>
     </div>
-    <div class="grid-4">
-      <button id="varPalBtn" title="Vary harmonious palette">Palette</button>
-      <button id="varFormBtn" title="Vary 3D form & layers">Form</button>
-      <button id="varLightBtn" title="Vary material & lighting">Light</button>
-      <button id="varMotionBtn" title="Vary flow & integrator">Motion</button>
+    <div class="row">
+      <label>Background</label>
+      <select id="bgModeSel" style="flex:1">
+        <option value="0">Custom (picker)</option>
+        <option value="1">Black</option>
+        <option value="2">White</option>
+        <option value="3">Transparent</option>
+      </select>
     </div>
+    <div class="colors-bar">
+      <div class="col-chip"><input id="cBg" type="color" value="#000000" /><span>Bg</span></div>
+      <div class="col-chip"><input id="cDark" type="color" value="#101010" /><span>Dark</span></div>
+      <div class="col-chip"><input id="cMid" type="color" value="#8e8e8e" /><span>Mid</span></div>
+      <div class="col-chip"><input id="cBright" type="color" value="#ffffff" /><span>Bright</span></div>
+      <div class="col-chip"><input id="cLight1" type="color" value="#ffffff" /><span>Light 1</span></div>
+      <div class="col-chip"><input id="cLight2" type="color" value="#dce8ff" /><span>Rim</span></div>
+    </div>
+    <div class="grid-2">
+      <select id="colorDriverSel">
+        <option value="0">Color: Light</option>
+        <option value="1">Color: Speed</option>
+        <option value="2">Color: Depth</option>
+        <option value="3">Color: Photo</option>
+      </select>
+      <select id="mixModeSel">
+        <option value="0">Mix: Smoke</option>
+        <option value="1">Mix: Fire Glow</option>
+        <option value="2">Mix: Ink</option>
+      </select>
+    </div>
+    <div class="row"><label>Color Drift</label><input id="pHueDrift" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vHueDrift">0.00</span></div>
+    <div class="row"><label>Mono Invert</label><input id="pMonoInvert" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vMonoInvert">0.00</span></div>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="look">Look</button>
-      <button class="tab-btn" data-tab="form">Form</button>
-      <button class="tab-btn" data-tab="motion">Motion</button>
-      <button class="tab-btn" data-tab="fx">FX</button>
-      <button class="tab-btn" data-tab="export">Export JS</button>
+    <div class="sec"><span>Dynamic Lights</span></div>
+    <div class="row">
+      <label>Light Path</label>
+      <select id="lightModeSel" style="flex:1">
+        <option value="0">Auto Spin</option>
+        <option value="1">Follow Mouse</option>
+        <option value="2">Lock Angle</option>
+      </select>
     </div>
+    <div class="row"><label>Light Power</label><input id="pLight1" type="range" min="0.2" max="2.4" step="0.05" value="1.0"><span class="val" id="vLight1">1.00</span></div>
+    <div class="row"><label>Edge Glow</label><input id="pRim" type="range" min="0" max="2.0" step="0.05" value="0.45"><span class="val" id="vRim">0.45</span></div>
+    <div class="row"><label>Light Angle</label><input id="pLightAngle" type="range" min="0" max="6.28" step="0.05" value="0.8"><span class="val" id="vLightAngle">0.80</span></div>
+    <div class="row"><label>Pulse Wave</label><input id="pPulse" type="range" min="0" max="1.0" step="0.02" value="0"><span class="val" id="vPulse">0.00</span></div>
 
-    <div class="tab-pane show" data-pane="look">
-      <div class="row">
-        <label>Background</label>
-        <select id="bgModeSel" style="flex:1">
-          <option value="0">Custom (picker)</option>
-          <option value="1">Black</option>
-          <option value="2">White</option>
-          <option value="3">Transparent</option>
-        </select>
-      </div>
-      <div class="colors-bar">
-        <div class="col-chip"><input id="cBg" type="color" value="#000000" /><span>Bg</span></div>
-        <div class="col-chip"><input id="cDark" type="color" value="#101010" /><span>Dark</span></div>
-        <div class="col-chip"><input id="cMid" type="color" value="#8e8e8e" /><span>Mid</span></div>
-        <div class="col-chip"><input id="cBright" type="color" value="#ffffff" /><span>Bright</span></div>
-        <div class="col-chip"><input id="cLight1" type="color" value="#ffffff" /><span>Key</span></div>
-        <div class="col-chip"><input id="cLight2" type="color" value="#dce8ff" /><span>Rim</span></div>
-        <div class="col-chip"><input id="cLight3" type="color" value="#7098ff" /><span>Fill</span></div>
-      </div>
-      <div class="grid-2">
-        <select id="materialSel">
-          <option value="0">Mat: Smoke</option>
-          <option value="1">Mat: Silk Sheen</option>
-          <option value="2">Mat: Liquid Chrome</option>
-          <option value="3">Mat: Iridescent</option>
-          <option value="4">Mat: Plasma</option>
-          <option value="5">Mat: Sumi Ink</option>
-          <option value="6">Mat: Gloss Orbs</option>
-        </select>
-        <select id="colorDriverSel">
-          <option value="0">Color: Light</option>
-          <option value="1">Color: Speed</option>
-          <option value="2">Color: Depth</option>
-          <option value="3">Color: Photo</option>
-          <option value="4">Color: Layer</option>
-        </select>
-      </div>
-      <div class="grid-2">
-        <select id="mixModeSel">
-          <option value="0">Mix: Smoke</option>
-          <option value="1">Mix: Fire Glow</option>
-          <option value="2">Mix: Ink</option>
-        </select>
-        <select id="lightModeSel">
-          <option value="0">Light: Auto Spin</option>
-          <option value="1">Light: Mouse</option>
-          <option value="2">Light: Lock</option>
-        </select>
-      </div>
-      <div class="row"><label>Key Power</label><input id="pLight1" type="range" min="0.2" max="2.4" step="0.05" value="1.0"><span class="val" id="vLight1">1.00</span></div>
-      <div class="row"><label>Rim Glow</label><input id="pRim" type="range" min="0" max="2.0" step="0.05" value="0.45"><span class="val" id="vRim">0.45</span></div>
-      <div class="row"><label>Accent Light</label><input id="pLight3" type="range" min="0" max="2.0" step="0.05" value="0"><span class="val" id="vLight3">0.00</span></div>
-      <div class="row"><label>Specular</label><input id="pSpecular" type="range" min="0" max="2.0" step="0.05" value="0.45"><span class="val" id="vSpecular">0.45</span></div>
-      <div class="row"><label>Light Angle</label><input id="pLightAngle" type="range" min="0" max="6.28" step="0.05" value="0.8"><span class="val" id="vLightAngle">0.80</span></div>
-      <div class="row"><label>Pulse Wave</label><input id="pPulse" type="range" min="0" max="1.0" step="0.02" value="0"><span class="val" id="vPulse">0.00</span></div>
-      <div class="row"><label>Additive Mix</label><input id="pAdditive" type="range" min="0" max="1.0" step="0.02" value="0"><span class="val" id="vAdditive">0.00</span></div>
-      <div class="row"><label>Color Drift</label><input id="pHueDrift" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vHueDrift">0.00</span></div>
-      <div class="row"><label>DoF Bokeh</label><input id="pDof" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vDof">0.00</span></div>
-      <div class="row"><label>Depth Fog</label><input id="pFog" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vFog">0.00</span></div>
-      <div class="row"><label>Mono Invert</label><input id="pMonoInvert" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vMonoInvert">0.00</span></div>
+    <div class="sec"><span>Shapes, Text &amp; Ghost</span></div>
+    <div class="row">
+      <label>Shape</label>
+      <select id="shapeSel" style="flex:1">
+        <option value="0">Ball Storm</option>
+        <option value="1">Ring Portal</option>
+        <option value="2">Silk Wave</option>
+        <option value="3">Twin Storms</option>
+        <option value="4">Free Float</option>
+        <option value="5">Word / Logo</option>
+      </select>
+      <button id="blastBtn">Blast</button>
     </div>
-
-    <div class="tab-pane" data-pane="form">
+    <div id="wordBox" class="col-box">
       <div class="row">
-        <label>3D Form</label>
-        <select id="shapeSel" style="flex:1">
-          <option value="0">Ball Storm</option>
-          <option value="1">Ring Portal</option>
-          <option value="2">Silk Wave</option>
-          <option value="3">Twin Storms</option>
-          <option value="4">Free Float</option>
-          <option value="5">Word / SVG / 3D Mesh</option>
-          <option value="6">Superformula 3D</option>
-          <option value="7">Torus Knot</option>
-          <option value="8">Strange Attractor</option>
-          <option value="9">SDF Sculpture</option>
-        </select>
-        <button id="blastBtn">Blast</button>
-      </div>
-      <div id="wordBox" class="col-box">
-        <div class="row">
-          <input id="wordInput" type="text" maxlength="20" value="VORTEX" style="flex:1" placeholder="Type word..." />
-          <button id="logoBtn" title="Load PNG, JPG, or SVG">Img/SVG</button>
-          <button id="objBtn" title="Load 3D OBJ mesh">3D OBJ</button>
-          <input id="logoFileInput" type="file" accept="image/*,.svg" style="display:none" />
-          <input id="objFileInput" type="file" accept=".obj,text/plain" style="display:none" />
-        </div>
-      </div>
-      <div class="grid-2">
-        <select id="layerModeSel">
-          <option value="0">Layer: Single</option>
-          <option value="1">Layer: Core + Halo</option>
-          <option value="2">Layer: Core + Dust</option>
-          <option value="3">Layer: Dual Spin</option>
-          <option value="4">Layer: Trio</option>
-        </select>
-        <select id="integratorSel">
-          <option value="0">Physics: Silk Flow</option>
-          <option value="1">Physics: Inertia</option>
-          <option value="2">Physics: Seamless Loop</option>
-        </select>
-      </div>
-      <div class="row"><label>Sculpt A</label><input id="pFormA" type="range" min="0" max="12" step="0.1" value="3"><span class="val" id="vFormA">3.0</span></div>
-      <div class="row"><label>Sculpt B</label><input id="pFormB" type="range" min="0" max="12" step="0.1" value="2"><span class="val" id="vFormB">2.0</span></div>
-      <div class="row"><label>Sculpt C</label><input id="pFormC" type="range" min="0" max="2" step="0.05" value="0.5"><span class="val" id="vFormC">0.50</span></div>
-      <div class="row"><label>Surface Flow</label><input id="pSurfaceFlow" type="range" min="0" max="1" step="0.02" value="0.45"><span class="val" id="vSurfaceFlow">0.45</span></div>
-      <div class="row"><label>Loop (sec)</label><input id="pLoopSec" type="range" min="2" max="30" step="1" value="8"><span class="val" id="vLoopSec">8s</span></div>
-      <div class="sec"><span>Interactive Sculpting</span></div>
-      <div class="row">
-        <label>Mouse Tool</label>
-        <select id="toolSel" style="flex:1">
-          <option value="0">3D Orbit Camera</option>
-          <option value="1">Wind Brush</option>
-          <option value="2">Pin Whirlpool</option>
-        </select>
-      </div>
-      <div class="grid-2">
-        <button id="camBtn">Webcam Ghost</button>
-        <button id="clearForcesBtn">Clear Brush/Pins</button>
+        <input id="wordInput" type="text" maxlength="20" value="VORTEX" style="flex:1" placeholder="Type word..." />
+        <button id="logoBtn">Load Img</button>
+        <input id="logoFileInput" type="file" accept="image/*" style="display:none" />
       </div>
     </div>
-
-    <div class="tab-pane" data-pane="motion">
-      <div class="row"><label>Speed</label><input id="pSpeed" type="range" min="-2.0" max="2.5" step="0.05" value="1"><span class="val" id="vSpeed">1.00</span></div>
-      <div class="row"><label>Curl</label><input id="pCurl" type="range" min="0.2" max="3.5" step="0.05" value="1.55"><span class="val" id="vCurl">1.55</span></div>
-      <div class="row"><label>Wave Size</label><input id="pFreq" type="range" min="0.4" max="2.8" step="0.05" value="1.15"><span class="val" id="vFreq">1.15</span></div>
-      <div class="row"><label>Swirl</label><input id="pSwirl" type="range" min="0" max="4" step="0.05" value="1.8"><span class="val" id="vSwirl">1.80</span></div>
-      <div class="row"><label>Silk / Dust</label><input id="pSilk" type="range" min="0" max="1" step="0.02" value="0.5"><span class="val" id="vSilk">0.50</span></div>
-      <div class="row"><label>Wind X</label><input id="pWind" type="range" min="-2.5" max="2.5" step="0.05" value="0"><span class="val" id="vWind">0.00</span></div>
-      <div class="row"><label>Gravity Y</label><input id="pGravity" type="range" min="-2.5" max="2.5" step="0.05" value="0"><span class="val" id="vGravity">0.00</span></div>
-      <div class="row"><label>Dots (k)</label><input id="pDots" type="range" min="20" max="240" step="10" value="150"><span class="val" id="vDots">150k</span></div>
-      <div class="row"><label>Auto Orbit</label><input id="pOrbit" type="range" min="0" max="1.2" step="0.02" value="0.14"><span class="val" id="vOrbit">0.14</span></div>
-      <div class="row"><label>Zoom</label><input id="pZoom" type="range" min="0.6" max="2.8" step="0.05" value="1.45"><span class="val" id="vZoom">1.45</span></div>
-      <div class="row"><label>Streak</label><input id="pShutter" type="range" min="0.004" max="0.07" step="0.002" value="0.022"><span class="val" id="vShutter">0.022</span></div>
-      <div class="row">
-        <label>Step FPS</label>
-        <select id="fpsStepSel" style="flex:1">
-          <option value="0">Smooth (Max)</option>
-          <option value="60">60 fps</option>
-          <option value="24">24 fps</option>
-          <option value="12">12 fps</option>
-          <option value="8">8 fps</option>
-        </select>
-        <button id="freezeBtn" title="Freeze motion, spin camera (F)">Freeze [F]</button>
-      </div>
-      <div class="grid-2">
-        <button id="pauseBtn">Pause [Space]</button>
-        <button id="resetBtn">Reset</button>
-      </div>
-      <div class="sec"><span>Interactive State Tester</span></div>
-      <div class="row">
-        <label>Host State</label>
-        <select id="stateSel" style="flex:1">
-          <option value="idle">idle</option>
-          <option value="hover">hover</option>
-          <option value="thinking">thinking</option>
-          <option value="active">active</option>
-          <option value="loading">loading</option>
-        </select>
-      </div>
-      <div class="row"><label>Progress</label><input id="pProgress" type="range" min="0" max="1" step="0.02" value="0"><span class="val" id="vProgress">0%</span></div>
-      <div class="sec"><span>Sound Reactive</span></div>
-      <div class="grid-2">
-        <button id="micBtn">Use Mic</button>
-        <button id="fileAudioBtn">Load Audio</button>
-        <input id="audioFileInput" type="file" accept="audio/*" style="display:none" />
-      </div>
-      <div class="row"><label>Audio Push</label><input id="pAudio" type="range" min="0" max="2.0" step="0.05" value="1.0"><span class="val" id="vAudio">1.00</span></div>
-      <div class="status-line">
-        <span><i class="dot" id="audioDot"></i><span id="audioText">Off</span></span>
-        <span id="audioBands">B 0 · M 0 · H 0</span>
-      </div>
+    <div class="grid-2">
+      <button id="camBtn">Webcam Ghost</button>
+      <button id="clearForcesBtn">Clear Brush/Pins</button>
+    </div>
+    <div class="row">
+      <label>Mouse Tool</label>
+      <select id="toolSel" style="flex:1">
+        <option value="0">3D Orbit Camera</option>
+        <option value="1">Wind Brush</option>
+        <option value="2">Pin Whirlpool</option>
+      </select>
     </div>
 
-    <div class="tab-pane" data-pane="fx">
-      <div class="grid-2">
-        <select id="dotShapeSel">
-          <option value="0">Dot: Silk Lines</option>
-          <option value="1">Dot: Soft Orbs</option>
-          <option value="2">Dot: Shards</option>
-          <option value="3">Dot: Sparks</option>
-          <option value="4">Dot: Halo Rings</option>
-          <option value="5">Dot: Stars</option>
-        </select>
-        <select id="mirrorSel">
-          <option value="0">Mirror: Off</option>
-          <option value="1">Mirror: 2x Fold</option>
-          <option value="2">Mirror: 4x Cross</option>
-          <option value="3">Mirror: 6x Star</option>
-          <option value="4">Mirror: 8x Star</option>
-          <option value="5">Mirror: 12x</option>
-        </select>
-      </div>
-      <div class="grid-2">
-        <select id="lensSel">
-          <option value="0">Lens: Clean</option>
-          <option value="1">Lens: Edge Blur</option>
-          <option value="2">Lens: Thermal</option>
-          <option value="3">Lens: X-Ray</option>
-          <option value="4">Lens: VHS Retro</option>
-          <option value="5">Lens: Crystal</option>
-          <option value="6">Lens: Pixel</option>
-          <option value="7">Lens: Mercury</option>
-        </select>
-        <select id="toneMapSel">
-          <option value="1">Tone: ACES HDR</option>
-          <option value="0">Tone: Linear</option>
-        </select>
-      </div>
-      <div class="row"><label>Mirror Spin</label><input id="pMirrorSpin" type="range" min="-1.5" max="1.5" step="0.05" value="0"><span class="val" id="vMirrorSpin">0.00</span></div>
-      <div class="row"><label>Contrast</label><input id="pContrast" type="range" min="0.6" max="3.2" step="0.05" value="1.75"><span class="val" id="vContrast">1.75</span></div>
-      <div class="row"><label>Opacity</label><input id="pOpacity" type="range" min="0.2" max="2.0" step="0.05" value="1.0"><span class="val" id="vOpacity">1.00</span></div>
-      <div class="row"><label>Trails</label><input id="pTrails" type="range" min="0" max="0.95" step="0.02" value="0"><span class="val" id="vTrails">0.00</span></div>
-      <div class="row"><label>HDR Bloom</label><input id="pGlow" type="range" min="0" max="1.4" step="0.05" value="0.2"><span class="val" id="vGlow">0.20</span></div>
-      <div class="row"><label>Color Split</label><input id="pSplit" type="range" min="0" max="1.0" step="0.02" value="0"><span class="val" id="vSplit">0.00</span></div>
-      <div class="row"><label>Film Grain</label><input id="pGrain" type="range" min="0" max="0.25" step="0.01" value="0.03"><span class="val" id="vGrain">0.03</span></div>
-      <div class="sec"><span>VJ Drops (Keys 1-6)</span></div>
-      <div class="grid-3">
-        <button id="vj1">[1] Flash</button>
-        <button id="vj2">[2] Kick</button>
-        <button id="vj3">[3] Flip</button>
-        <button id="vj4">[4] Drop</button>
-        <button id="vj5">[5] Blast</button>
-        <button id="vj6">[6] Freeze</button>
-      </div>
-      <div class="sec"><span>Morph &amp; Share</span></div>
-      <div class="grid-3">
-        <button id="saveABtn">Save A</button>
-        <button id="saveBBtn">Save B</button>
-        <button id="morphBtn">Morph Off</button>
-      </div>
-      <div class="grid-2">
-        <button id="copyLinkBtn">Copy Link</button>
-        <button id="pasteCodeBtn">Load Code</button>
-      </div>
+    <div class="sec"><span>Motion &amp; Time</span></div>
+    <div class="row"><label>Speed</label><input id="pSpeed" type="range" min="-2.0" max="2.5" step="0.05" value="1"><span class="val" id="vSpeed">1.00</span></div>
+    <div class="row"><label>Curl</label><input id="pCurl" type="range" min="0.2" max="3.5" step="0.05" value="1.55"><span class="val" id="vCurl">1.55</span></div>
+    <div class="row"><label>Wave Size</label><input id="pFreq" type="range" min="0.4" max="2.8" step="0.05" value="1.15"><span class="val" id="vFreq">1.15</span></div>
+    <div class="row"><label>Swirl</label><input id="pSwirl" type="range" min="0" max="4" step="0.05" value="1.8"><span class="val" id="vSwirl">1.80</span></div>
+    <div class="row"><label>Silk / Dust</label><input id="pSilk" type="range" min="0" max="1" step="0.02" value="0.5"><span class="val" id="vSilk">0.50</span></div>
+    <div class="row"><label>Wind X</label><input id="pWind" type="range" min="-2.5" max="2.5" step="0.05" value="0"><span class="val" id="vWind">0.00</span></div>
+    <div class="row"><label>Gravity Y</label><input id="pGravity" type="range" min="-2.5" max="2.5" step="0.05" value="0"><span class="val" id="vGravity">0.00</span></div>
+    <div class="row"><label>Dots (k)</label><input id="pDots" type="range" min="40" max="240" step="10" value="150"><span class="val" id="vDots">150k</span></div>
+    <div class="row">
+      <label>Step FPS</label>
+      <select id="fpsStepSel" style="flex:1">
+        <option value="0">Smooth (Max)</option>
+        <option value="60">60 fps</option>
+        <option value="24">24 fps</option>
+        <option value="12">12 fps</option>
+        <option value="8">8 fps</option>
+      </select>
+      <button id="freezeBtn" title="Freeze motion, spin camera (F)">Freeze [F]</button>
+    </div>
+    <div class="grid-2">
+      <button id="pauseBtn">Pause [Space]</button>
+      <button id="resetBtn">Reset</button>
     </div>
 
-    <div class="tab-pane" data-pane="export">
-      <div class="sec"><span>Export as JavaScript</span><span id="expSizeLabel">-- KB</span></div>
-      <div class="row">
-        <label>Use Case</label>
-        <select id="expRoleSel" style="flex:1">
-          <option value="background">Website Background / Hero</option>
-          <option value="orb">Interactive AI Orb</option>
-          <option value="loader">Loading Screen / Preloader</option>
-          <option value="logo">Logo / Typography Reveal</option>
-          <option value="widget">Multi-Instance Card Widget</option>
-        </select>
-      </div>
-      <div class="row">
-        <label>Format</label>
-        <select id="expFmtSel" style="flex:1">
-          <option value="esm">Standalone ES Module (.mjs)</option>
-          <option value="component">Drop-In Script + Web Component (.js)</option>
-          <option value="react">React Component (.jsx)</option>
-          <option value="html">Standalone HTML Test (.html)</option>
-          <option value="json">Recipe JSON (Shared Runtime)</option>
-        </select>
-      </div>
-      <div class="grid-2">
-        <select id="expPtrSel">
-          <option value="local">Ptr: Canvas</option>
-          <option value="window">Ptr: Global</option>
-          <option value="none">Ptr: Off</option>
-        </select>
-        <select id="expReducedSel">
-          <option value="calm">Motion: Calm</option>
-          <option value="static">Motion: Static</option>
-        </select>
-      </div>
-      <div class="row"><label>Scroll FX</label><input id="pScrollReact" type="range" min="0" max="1" step="0.05" value="0.25"><span class="val" id="vScrollReact">0.25</span></div>
-      <div class="row"><label>HTML Tag</label><input id="expTagInput" type="text" value="vortex-scene" style="flex:1" /></div>
-      <div class="check-row">
-        <label><input id="expCompactChk" type="checkbox" checked /> Compact</label>
-        <label><input id="expPosterChk" type="checkbox" checked /> Poster</label>
-        <label><input id="expAutoPauseChk" type="checkbox" checked /> Offscreen Pause</label>
-      </div>
-      <div class="grid-2">
-        <button id="expCopyBtn" class="active">Copy JS</button>
-        <button id="expDlBtn">Download File</button>
-      </div>
-      <button id="expSandboxBtn">Test Live in Website Sandbox</button>
-      <textarea id="expSnippet" rows="3" readonly></textarea>
+    <div class="sec"><span>Dots, Mirrors &amp; Lenses</span></div>
+    <div class="grid-2">
+      <select id="dotShapeSel">
+        <option value="0">Dot: Silk Lines</option>
+        <option value="1">Dot: Soft Orbs</option>
+        <option value="2">Dot: Shards</option>
+        <option value="3">Dot: Sparks</option>
+      </select>
+      <select id="mirrorSel">
+        <option value="0">Mirror: Off</option>
+        <option value="1">Mirror: 2x Fold</option>
+        <option value="2">Mirror: 4x Cross</option>
+        <option value="3">Mirror: 6x Star</option>
+        <option value="4">Mirror: 8x Star</option>
+        <option value="5">Mirror: 12x</option>
+      </select>
+    </div>
+    <div class="row"><label>Mirror Spin</label><input id="pMirrorSpin" type="range" min="-1.5" max="1.5" step="0.05" value="0"><span class="val" id="vMirrorSpin">0.00</span></div>
+    <div class="row">
+      <label>Lens</label>
+      <select id="lensSel" style="flex:1">
+        <option value="0">Clean</option>
+        <option value="1">Lens Blur</option>
+        <option value="2">Thermal Heat</option>
+        <option value="3">X-Ray Scan</option>
+        <option value="4">VHS Retro</option>
+        <option value="5">Crystal Marble</option>
+        <option value="6">Pixel Crunch</option>
+      </select>
+    </div>
+    <div class="row"><label>Auto Orbit</label><input id="pOrbit" type="range" min="0" max="1.2" step="0.02" value="0.14"><span class="val" id="vOrbit">0.14</span></div>
+    <div class="row"><label>Zoom</label><input id="pZoom" type="range" min="0.6" max="2.8" step="0.05" value="1.45"><span class="val" id="vZoom">1.45</span></div>
+    <div class="row"><label>Streak</label><input id="pShutter" type="range" min="0.004" max="0.07" step="0.002" value="0.022"><span class="val" id="vShutter">0.022</span></div>
+    <div class="row"><label>Contrast</label><input id="pContrast" type="range" min="0.6" max="3.2" step="0.05" value="1.75"><span class="val" id="vContrast">1.75</span></div>
+    <div class="row"><label>Opacity</label><input id="pOpacity" type="range" min="0.2" max="2.0" step="0.05" value="1.0"><span class="val" id="vOpacity">1.00</span></div>
+    <div class="row"><label>Trails</label><input id="pTrails" type="range" min="0" max="0.95" step="0.02" value="0"><span class="val" id="vTrails">0.00</span></div>
+    <div class="row"><label>Soft Glow</label><input id="pGlow" type="range" min="0" max="1.4" step="0.05" value="0.2"><span class="val" id="vGlow">0.20</span></div>
+    <div class="row"><label>Color Split</label><input id="pSplit" type="range" min="0" max="1.0" step="0.02" value="0"><span class="val" id="vSplit">0.00</span></div>
+    <div class="row"><label>Film Grain</label><input id="pGrain" type="range" min="0" max="0.25" step="0.01" value="0.03"><span class="val" id="vGrain">0.03</span></div>
 
-      <div class="sec"><span>Canvas &amp; Media Backup</span></div>
-      <div class="row">
-        <label>Ratio</label>
-        <select id="ratioSel" style="flex:1">
-          <option value="fill">Fill Window</option>
-          <option value="1:1" selected>1:1 (Square)</option>
-          <option value="16:9">16:9 (Landscape)</option>
-          <option value="9:16">9:16 (Vertical)</option>
-          <option value="4:5">4:5 (Portrait)</option>
-          <option value="21:9">21:9 (Ultrawide)</option>
-          <option value="custom">Custom W : H</option>
-        </select>
-      </div>
-      <div class="custom-ratio" id="customRatioRow">
-        <input id="ratioW" type="number" min="1" max="9999" value="16" title="Width ratio" />
-        <span>:</span>
-        <input id="ratioH" type="number" min="1" max="9999" value="10" title="Height ratio" />
-      </div>
-      <div class="row">
-        <label>Export Res</label>
-        <select id="resSel" style="flex:1">
-          <option value="auto">Auto (Viewport)</option>
-          <option value="720">720p</option>
-          <option value="1080" selected>1080p</option>
-          <option value="1440">1440p</option>
-          <option value="2160">4K (2160p)</option>
-        </select>
-      </div>
-      <div class="row"><label>Canvas</label><span class="val" id="dimLabel" style="flex:1">1080 × 1080</span></div>
-      <div class="row"><label>Format</label><select id="fmtSel" style="flex:1"></select></div>
-      <div class="row">
-        <label>Auto-stop</label>
-        <select id="durSel" style="flex:1">
-          <option value="0">Manual (max 3m)</option>
-          <option value="10">10 sec</option>
-          <option value="15">15 sec</option>
-          <option value="30">30 sec</option>
-        </select>
-      </div>
-      <div class="grid-2">
-        <button id="recBtn">● Record</button>
-        <button id="snapBtn">Snap PNG</button>
-      </div>
-      <div class="status-line">
-        <span><i class="dot" id="recDot"></i><span id="recText">Idle</span></span>
-        <span id="recTimer">00:00.0</span>
-      </div>
+    <div class="sec"><span>VJ Drops (Keys 1-6)</span></div>
+    <div class="grid-3">
+      <button id="vj1">[1] Flash</button>
+      <button id="vj2">[2] Kick</button>
+      <button id="vj3">[3] Flip</button>
+      <button id="vj4">[4] Drop</button>
+      <button id="vj5">[5] Blast</button>
+      <button id="vj6">[6] Freeze</button>
+    </div>
+
+    <div class="sec"><span>Sound Reactive</span></div>
+    <div class="grid-2">
+      <button id="micBtn">Use Mic</button>
+      <button id="fileAudioBtn">Load Audio</button>
+      <input id="audioFileInput" type="file" accept="audio/*" style="display:none" />
+    </div>
+    <div class="row"><label>Audio Push</label><input id="pAudio" type="range" min="0" max="2.0" step="0.05" value="1.0"><span class="val" id="vAudio">1.00</span></div>
+    <div class="status-line">
+      <span><i class="dot" id="audioDot"></i><span id="audioText">Off</span></span>
+      <span id="audioBands">B 0 · M 0 · H 0</span>
+    </div>
+
+    <div class="sec"><span>Presets &amp; Morph</span></div>
+    <div class="grid-3">
+      <button id="saveABtn">Save A</button>
+      <button id="saveBBtn">Save B</button>
+      <button id="morphBtn">Morph Off</button>
+    </div>
+    <div class="grid-2">
+      <button id="copyLinkBtn">Copy Link</button>
+      <button id="pasteCodeBtn">Load Code</button>
+    </div>
+
+    <div class="sec"><span>Aspect Ratio &amp; Export</span></div>
+    <div class="row">
+      <label>Ratio</label>
+      <select id="ratioSel" style="flex:1">
+        <option value="fill">Fill Window</option>
+        <option value="1:1" selected>1:1 (Square)</option>
+        <option value="16:9">16:9 (Landscape)</option>
+        <option value="9:16">9:16 (Vertical)</option>
+        <option value="4:5">4:5 (Portrait)</option>
+        <option value="21:9">21:9 (Ultrawide)</option>
+        <option value="custom">Custom W : H</option>
+      </select>
+    </div>
+    <div class="custom-ratio" id="customRatioRow">
+      <input id="ratioW" type="number" min="1" max="9999" value="16" title="Width ratio" />
+      <span>:</span>
+      <input id="ratioH" type="number" min="1" max="9999" value="10" title="Height ratio" />
+    </div>
+    <div class="row">
+      <label>Export Res</label>
+      <select id="resSel" style="flex:1">
+        <option value="auto">Auto (Viewport)</option>
+        <option value="720">720p</option>
+        <option value="1080" selected>1080p</option>
+        <option value="1440">1440p</option>
+        <option value="2160">4K (2160p)</option>
+      </select>
+    </div>
+    <div class="row"><label>Canvas</label><span class="val" id="dimLabel" style="flex:1">1080 × 1080</span></div>
+    <div class="row">
+      <label>Format</label>
+      <select id="fmtSel" style="flex:1"></select>
+    </div>
+    <div class="row">
+      <label>Auto-stop</label>
+      <select id="durSel" style="flex:1">
+        <option value="0">Manual (max 3m)</option>
+        <option value="10">10 sec</option>
+        <option value="15">15 sec</option>
+        <option value="30">30 sec</option>
+      </select>
+    </div>
+    <div class="grid-2">
+      <button id="recBtn">● Record</button>
+      <button id="snapBtn">Snap PNG</button>
+    </div>
+    <div class="status-line">
+      <span><i class="dot" id="recDot"></i><span id="recText">Idle</span></span>
+      <span id="recTimer">00:00.0</span>
     </div>
   </aside>
-
-  <div id="sandboxModal" class="modal hidden">
-    <div class="modal-bar">
-      <span>Isolated Website Embed Sandbox (Zero Dependencies)</span>
-      <div class="row">
-        <select id="sandboxBackdropSel">
-          <option value="dark">Dark Site</option>
-          <option value="light">Light Site</option>
-          <option value="gradient">Gradient Site</option>
-        </select>
-        <button id="sandboxCloseBtn">Close</button>
-      </div>
-    </div>
-    <iframe id="sandboxFrame" sandbox="allow-scripts" title="Export Sandbox"></iframe>
-  </div>
 </body>
 </html>
